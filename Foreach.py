@@ -20,12 +20,15 @@ def foreach(iterable, action=None, size=None):
             # Otherwise, convert to NumPy array and perform the operation
             return np.array(iterable) * action
     else:
+        # Initialize or retrieve the cached results dictionary
+        cached_results = foreach.__dict__.setdefault("cached_results", {})
+        
+        # Generate a unique key based on iterable and action
+        key = (tuple(iterable), action)
+        
         # Check if the result has been cached
-        if size is not None and "cached_results" in foreach.__dict__:
-            cached_results = foreach.__dict__["cached_results"]
-            for cached_iterable, cached_action, cached_output in cached_results:
-                if np.array_equal(np.array(iterable), cached_iterable) and action == cached_action:
-                    return cached_output
+        if size is not None and key in cached_results:
+            return cached_results[key]
         
         # Convert iterable to a NumPy array if not already
         iter_array = np.array(iterable)
@@ -35,18 +38,20 @@ def foreach(iterable, action=None, size=None):
         
         # Cache the result for future use
         if size is not None:
-            foreach.__dict__.setdefault("cached_results", []).append((iter_array, action, result))
-            if len(foreach.__dict__["cached_results"]) > size:
-                foreach.__dict__["cached_results"].pop(0)
-        else:
-            foreach.__dict__["cached_results"] = [(iter_array, action, result)]
+            cached_results[key] = result
+            if len(cached_results) > size:
+                # Remove the oldest entry if cache size exceeds the limit
+                cached_results.pop(next(iter(cached_results)))
         
     del iter_array, action, iterable
         
     return result
     
+
+
+    
 # Test the foreach function
-input_array = [i for i in range(0,10000000)]
+input_array = [i for i in range(0,20000000)]
 output_array = foreach(input_array, double_array, size=2)
 
 print(output_array)
