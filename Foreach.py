@@ -5,6 +5,7 @@ Created on Fri Mar 15 13:16:11 2024
 @author: hadaw
 """
 # Helped with AI, kind of just instructed it to do stuff for me. It was like me and AI together, and we made unison and hopefully butter
+# Coding along with AI is the future.
 import numpy as np
 
 def double_array(arr):
