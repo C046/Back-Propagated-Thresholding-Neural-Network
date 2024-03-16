@@ -15,7 +15,6 @@ def subtract_value(arr, value):
 
 
 def foreach(value, other_values, action, size=None):
-    print(size)
     
     if not isinstance(value, np.ndarray):
         value = np.array(value)
@@ -39,6 +38,7 @@ def foreach(value, other_values, action, size=None):
     else:
         # Handle regular iterable operations
         if not callable(action):
+            print(True)
             # If action is a scalar, perform element-wise multiplication
             result = value * action
         else:
@@ -59,7 +59,7 @@ def foreach(value, other_values, action, size=None):
     
     return result
 
-def MAS(values, predicted_values, size=None):
+def MSA(values, predicted_values, size=None):
     if not isinstance(values, np.ndarray):
         if isinstance(values, (int, float)):
             values = [values]
@@ -73,15 +73,38 @@ def MAS(values, predicted_values, size=None):
     n = 1/values.size
     
     return n*sum(foreach(values, predicted_values, action=subtract_value, size=size)**2)
+
+def MAE(values, predicted_values, size=None):
+    if not isinstance(values, np.ndarray):
+        if isinstance(values, (int, float)):
+            values = [values]
+        values = np.array(values)
+
+    if not isinstance(predicted_values, np.ndarray):
+        if isinstance(predicted_values, (int, float)):
+            predicted_values = [predicted_values]
+        predicted_values = np.array(predicted_values)
+    
+    n = 1/values.size
+    
+    return n*sum(foreach(values, predicted_values, action=subtract_value, size=size))
+
+
+
+def LinearRegression(values, predicted_values):
+    m = 1/(2*values.size)
+    pass
+
     
 # Test the MAS function
-input_array = np.random.uniform(0,100,size=(15,2))
+input_array = np.array([i for i in range(100)])
+predicted = 49.9999999999999999999999999
 
-predicted = input_array
-np.random.shuffle(predicted)
+
+
 
 
 # foreach = n*sum(foreach(input_array, predicted, action=subtract_value)**2)
 
-mas_value = MAS(input_array, predicted, size=predicted/2)
+mas_value = MAE(input_array, predicted)
 print("Mean Absolute Square:", mas_value)
