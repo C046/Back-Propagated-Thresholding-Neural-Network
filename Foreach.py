@@ -9,9 +9,19 @@ Created on Fri Mar 15 13:16:11 2024
 # Coding along with AI is the future.
 
 import numpy as np
+import plotly.graph_objects as go
 
 def subtract_value(arr, value):
     return np.subtract(arr, value)
+
+def add_value(arr, value):
+    return np.add(arr, value)
+
+def divide_value(arr, value):
+    return np.divide(arr, value)
+
+def multiply_value(arr, value):
+    return np.multiply(arr, value)
 
 
 def foreach(value, other_values, action, size=None):
@@ -103,19 +113,46 @@ def RMSE(values, predicted_values, size=None):
     return np.sqrt(MSE(values,predicted_values, size=size))
 
 def LinearRegression(values, predicted_values):
-    m = 1/(2*values.size)
-    pass
+    """
+    Perform simple linear regression.
 
-    
-# Test the MAS function
-input_array = np.array([i for i in range(100)])
-predicted = input_array.copy()
-np.random.shuffle(predicted)
+    Parameters:
+    values : array-like, shape (n_samples,)
+        Independent variable values.
+    predicted_values : array-like, shape (n_samples,)
+        Dependent variable values (predictions).
 
+    Returns:
+    intercept : float
+        Intercept of the regression line.
+    slope : float
+        Slope of the regression line.
+    """
+    if not isinstance(values, np.ndarray):
+        if isinstance(values, (int, float)):
+            values = [values]
+        values = np.array(values)
 
+    if not isinstance(predicted_values, np.ndarray):
+        if isinstance(predicted_values, (int, float)):
+            predicted_values = [predicted_values]
+        predicted_values = np.array(predicted_values)
 
-# foreach = n*sum(foreach(input_array, predicted, action=subtract_value)**2)
+    # Calculate the means
+    values_mean = np.mean(values)
+    predicted_mean = np.mean(predicted_values)
 
-mas_value = MAE(input_array, predicted)
-x  = np.cumsum(mas_value)
-print("MAE:", mas_value)
+    # Calculate the differences from the means
+    diff_values = foreach(values, values_mean, action=subtract_value)
+    diff_predicted = foreach(predicted_values, predicted_mean, action=subtract_value)
+
+    # Calculate the slope
+    numerator = foreach(diff_values, diff_predicted, action=multiply_value)
+    denominator = foreach(diff_values, diff_values, action=multiply_value)
+    slope = np.sum(numerator) / np.sum(denominator)
+
+    # Calculate the intercept
+    intercept = predicted_mean - slope * values_mean
+
+    return intercept, slope
+
