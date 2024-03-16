@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> 933bb6514ac67a28838b382d10b1ed2319ef1955
 # -*- coding: utf-8 -*-
 """
 Created on Fri Mar 15 13:16:11 2024
