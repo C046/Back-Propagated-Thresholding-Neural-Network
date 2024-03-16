@@ -8,7 +8,7 @@ Created on Fri Mar 15 13:16:11 2024
 """
 # Helped with AI, kind of just instructed it to do stuff for me. It was like me and AI together, and we made unison and hopefully butter
 # Coding along with AI is the future.
->>>>>>> 8296dd98afd6fb9fb50126bada6167c65ab13003
+
 import numpy as np
 
 def subtract_value(arr, value):
