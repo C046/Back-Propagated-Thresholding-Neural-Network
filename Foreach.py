@@ -12,14 +12,7 @@ import numpy as np
 
 def subtract_value(arr, value):
     return np.subtract(arr, value)
-def my_sum(nums):
-    total = 0
-    for num in nums:
-        if num < 0:
-            total -= abs(num)  # Subtract the absolute value of negative numbers
-        else:
-            total += num  # Add positive numbers directly
-    return total
+
 
 def foreach(value, other_values, action, size=None):
     
