@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 # -*- coding: utf-8 -*-
 """
 Created on Fri Mar 15 13:16:11 2024
@@ -8,7 +6,7 @@ Created on Fri Mar 15 13:16:11 2024
 """
 # Helped with AI, kind of just instructed it to do stuff for me. It was like me and AI together, and we made unison and hopefully butter
 # Coding along with AI is the future.
->>>>>>> 8296dd98afd6fb9fb50126bada6167c65ab13003
+
 import numpy as np
 
 def subtract_value(arr, value):
@@ -16,6 +14,7 @@ def subtract_value(arr, value):
 
 
 def foreach(value, other_values, action, size=None):
+    
     if not isinstance(value, np.ndarray):
         value = np.array(value)
         
@@ -60,18 +59,24 @@ def foreach(value, other_values, action, size=None):
 
 def MAS(values, predicted_values):
     if not isinstance(values, np.ndarray):
+        if isinstance(values, (int, float)):
+            values = [values]
         values = np.array(values)
-        
+
+    if not isinstance(predicted_values, np.ndarray):
+        if isinstance(predicted_values, (int, float)):
+            predicted_values = [predicted_values]
+        predicted_values = np.array(predicted_values)
     
     n = 1/values.size
     
     return n*sum(foreach(values, predicted_values, action=subtract_value, size=2)**2)
     
 # Test the MAS function
-input_array = np.random.uniform(0, 10000, size=(1, 3))
+input_array = 2
 
-predicted = np.random.uniform(0, 10000, size=(1, 3))
-np.random.shuffle(predicted)
+predicted = 
+
 
 # foreach = n*sum(foreach(input_array, predicted, action=subtract_value)**2)
 
