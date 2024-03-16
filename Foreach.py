@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 
->>>>>>> 933bb6514ac67a28838b382d10b1ed2319ef1955
 # -*- coding: utf-8 -*-
 """
 Created on Fri Mar 15 13:16:11 2024
@@ -18,6 +15,7 @@ def subtract_value(arr, value):
 
 
 def foreach(value, other_values, action, size=None):
+    print(size)
     
     if not isinstance(value, np.ndarray):
         value = np.array(value)
@@ -61,7 +59,7 @@ def foreach(value, other_values, action, size=None):
     
     return result
 
-def MAS(values, predicted_values):
+def MAS(values, predicted_values, size=None):
     if not isinstance(values, np.ndarray):
         if isinstance(values, (int, float)):
             values = [values]
@@ -74,15 +72,16 @@ def MAS(values, predicted_values):
     
     n = 1/values.size
     
-    return n*sum(foreach(values, predicted_values, action=subtract_value, size=2)**2)
+    return n*sum(foreach(values, predicted_values, action=subtract_value, size=size)**2)
     
 # Test the MAS function
-input_array = 2
+input_array = np.random.uniform(0,100,size=(15,2))
 
-predicted = 
+predicted = input_array
+np.random.shuffle(predicted)
 
 
 # foreach = n*sum(foreach(input_array, predicted, action=subtract_value)**2)
 
-mas_value = MAS(input_array, predicted)
+mas_value = MAS(input_array, predicted, size=predicted/2)
 print("Mean Absolute Square:", mas_value)
