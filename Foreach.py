@@ -12,7 +12,14 @@ import numpy as np
 
 def subtract_value(arr, value):
     return np.subtract(arr, value)
-
+def my_sum(nums):
+    total = 0
+    for num in nums:
+        if num < 0:
+            total -= abs(num)  # Subtract the absolute value of negative numbers
+        else:
+            total += num  # Add positive numbers directly
+    return total
 
 def foreach(value, other_values, action, size=None):
     
@@ -59,7 +66,7 @@ def foreach(value, other_values, action, size=None):
     
     return result
 
-def MSA(values, predicted_values, size=None):
+def MSE(values, predicted_values, size=None):
     if not isinstance(values, np.ndarray):
         if isinstance(values, (int, float)):
             values = [values]
@@ -87,9 +94,20 @@ def MAE(values, predicted_values, size=None):
     
     n = 1/values.size
     
-    return n*sum(foreach(values, predicted_values, action=subtract_value, size=size))
+    return n*sum(np.abs(foreach(values, predicted_values, action=subtract_value, size=size)))
 
+def RMSE(values, predicted_values, size=None):
+    if not isinstance(values, np.ndarray):
+        if isinstance(values, (int, float)):
+            values = [values]
+        values = np.array(values)
 
+    if not isinstance(predicted_values, np.ndarray):
+        if isinstance(predicted_values, (int, float)):
+            predicted_values = [predicted_values]
+        predicted_values = np.array(predicted_values)   
+        
+    return np.sqrt(MSE(values,predicted_values, size=size))
 
 def LinearRegression(values, predicted_values):
     m = 1/(2*values.size)
@@ -98,13 +116,13 @@ def LinearRegression(values, predicted_values):
     
 # Test the MAS function
 input_array = np.array([i for i in range(100)])
-predicted = 49.9999999999999999999999999
-
-
+predicted = input_array.copy()
+np.random.shuffle(predicted)
 
 
 
 # foreach = n*sum(foreach(input_array, predicted, action=subtract_value)**2)
 
 mas_value = MAE(input_array, predicted)
-print("Mean Absolute Square:", mas_value)
+x  = np.cumsum(mas_value)
+print("MAE:", mas_value)
