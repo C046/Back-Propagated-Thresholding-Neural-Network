@@ -53,8 +53,9 @@ class NeuralNetwork:
                 
     
 
-
+    
     def train(self, hidden_layers=25, epochs=3, learning_rate=0.001):
+        counter=0
         batch_finished = False
         for epoch in range(epochs):
             Thresh = 0.0
@@ -81,12 +82,16 @@ class NeuralNetwork:
                                 np.random.shuffle(self.weights)
                                 np.random.shuffle(self.biases)
                                 
-                                sig_out, thresh = activators.Sigmoid(self.neurons, threshold=np.random.uniform(0.40, 0.50))
-                                self.neurons = sig_out
-                             
+                                self.neurons, thresh = activators.Sigmoid(self.sig_out, threshold=np.random.uniform(0.40, 0.50))
+                                self.sig_out = self.neurons
                                 
                     batch_finished = True  # Update batch_finished flag after the first batch
-        
+                    self.sig_out = np.array(self.sig_out).astype(np.int64)
+                    self.labels = np.array(self.labels).astype(np.int64)
+                    reg = LinearRegression(self.labels, self.sig_out)
+                    
+                    np.random.shuffle(self.labels)
+                
                     # # Shuffle weights and biases after each epoch
                     # pseudo_weight_gradients = np.ones((len(self.weights), len(self.weights)))
                     # pseudo_bias_gradients = np.zeros(len(self.weights))
@@ -105,7 +110,7 @@ class NeuralNetwork:
                        
                                
                     
-                    Regression_Intercept, Slope = LinearRegression(self.neurons, self.sig_out)
+                    Regression_Intercept, Slope = LinearRegression(self.labels, self.sig_out)
                     self.intercept.append(Regression_Intercept)
                     self.slope.append(Slope)
                         

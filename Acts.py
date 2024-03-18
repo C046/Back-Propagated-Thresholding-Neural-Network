@@ -38,7 +38,7 @@ class Activations:
         except StopIteration:
             pass
     
-    def Sigmoid(self, x, threshold=np.random.uniform(0.40, 0.50), epsilon=1e-15):
+    def Sigmoid(self, x, threshold=np.random.uniform(0.45, 0.50), epsilon=1e-15):
         if not isinstance(x, (list, tuple, np.ndarray)):
             # If x is not iterable, compute sigmoid directly
             x = np.array(x, dtype=np.float64)
@@ -49,18 +49,18 @@ class Activations:
             # If x is iterable, compute sigmoid iteratively
             expononential = []
             for value in x:
-                exp = mp.exp(value)
+                exp = mp.exp(-value)
                 expononential.append(exp)
-            return expononential, threshold
-            # Compute the denominator of the sigmoid function
-            bottom = foreach(expononential, 1, action=add_value)
+        
+            bottom = foreach(1, expononential, action=add_value)
             # Compute the sigmoid function
             result = foreach(1, bottom, action=divide_value)
-        
-        # Apply thresholding
-        sigmoid_result = np.where(result >= threshold, 0.0, 1.0).astype(np.float64)
-        
-        return sigmoid_result, threshold
+    
+        # Apply threshold if necessary
+   
+    
+    
+        return result, threshold
 
 
 
