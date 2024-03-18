@@ -24,6 +24,9 @@ def multiply_value(arr, value):
     return np.multiply(arr, value)
 
 
+
+
+
 def foreach(value, other_values, action, size=None):
     
     if not isinstance(value, np.ndarray):
@@ -129,7 +132,7 @@ def foil(y_hat):
     result = foreach(y_hat, one_minus_y_hat, action=lambda x, y: x * y)
     return result
 
-def calculate_gradient(true_labels, predicted_outputs, activations):
+def calculate_gradient(true_labels, predicted_outputs):
     """
     Compute the gradient of the loss function with respect to the parameters (weights and biases) of the neural network.
 
@@ -146,12 +149,12 @@ def calculate_gradient(true_labels, predicted_outputs, activations):
         List containing dictionaries of gradients for each layer.
     """
     num_samples = true_labels.shape[0]
-    num_layers = len(activations)
+    num_layers = len(predicted_outputs)
     gradients = []
 
     # Compute gradient for the output layer
     output_gradient = linear_derivative(true_labels, predicted_outputs)
-    output_rate_of_change = linear_rate_of_change(output_gradient, activations[-2])
+    output_rate_of_change = linear_rate_of_change(output_gradient, predicted_outputs[-2])
     output_partial_derivative = linear_partial_derivative(output_gradient, output_rate_of_change)
     output_gradients = {
         'weights': [],
@@ -244,14 +247,30 @@ def gradient_descent(parameters, gradients, learning_rate):
 
 # # Learning rate for gradient descent
 # learning_rate = 0.01
-
+def update_params(params, gradients, learning_rate):
+    """
+    Update the parameters (weights or biases) using gradient descent.
+    
+    Args:
+    - params (list): List of parameters to be updated.
+    - gradients (list): List of gradients corresponding to each parameter.
+    - learning_rate (float): The learning rate for gradient descent.
+    
+    Returns:
+    - updated_params (list): List of updated parameters after applying gradient descent.
+    """
+    updated_params = []
+    for param, gradient in zip(params, gradients):
+        updated_param = param - learning_rate * gradient
+        updated_params.append(updated_param)
+    return updated_params
 # # Perform one iteration of gradient descent
 # updated_parameters = gradient_descent(parameters, gradients, learning_rate)
 
 # # Print updated parameters
 # print("Updated Parameters:")
-for layer_params in updated_parameters:
-    print(layer_params)
+# for layer_params in updated_parameters:
+#     print(layer_params)
 def linear_derivative(true_labels, predicted_values):
     """
     Compute the partial derivative of the loss function with respect to the predicted values.
