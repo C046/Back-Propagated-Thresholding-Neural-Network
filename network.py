@@ -23,7 +23,7 @@ class NeuralNetwork:
         self.features = self.data.drop('diagnosis', axis=1)
         self.labels = (self.data['diagnosis'].values == 'M').astype(int)
         self.batch_size = batch_size
-        self.slope, self.intercept, self.neurons,self.weights,self.biases,self.sums,self.sig_out,self.sig_der,self.pred_labels,self.accu,self.loss,self.loss_der=([],[],[],[],[],[],[],[],[],[],[],[])
+        self.hidden_sums, self.slope, self.intercept, self.neurons,self.weights,self.biases,self.sums,self.sig_out,self.sig_der,self.pred_labels,self.accu,self.loss,self.loss_der=([],[],[],[],[],[],[],[],[],[],[],[],[])
 
         self.neuron_data = {
             "Weights": self.weights,
@@ -54,22 +54,30 @@ class NeuralNetwork:
     
     def train(self, hidden_layers=1, epochs=1, learning_rate=0.001):
         for epoch in range(epochs):
+            np.random.shuffle(self.weights)
+            np.random.shuffle(self.biases)
+            np.random.shuffle(self.labels)
+            
             for hidden_layer in range(hidden_layers):
                 neurons = self.neurons
-                np.random.shuffle(self.labels)
-                np.random.shuffle(self.weights)
-                np.random.shuffle(self.biases)
-                
-                for feature_name, neurons in self.features.items():
+                hidden_done=False
+                for _, neurons in self.features.items():
+                    
                     input_layer = InputLayer(neurons, batch_size=self.batch_size)
                     for batched_inputs in input_layer.batch_inputs():
                         activators = Activations(batched_inputs)
                         sig_out_batch = []  # Store sigmoid outputs for the batch
                         for neuron, bias, weights in activators.Iter_neuron():
                             weighted_sum = np.dot(neuron, weights) + bias
+                            try:
+                                
+                                self.sums.append(weighted_sum)
+                            except Exception:
+                                self.hidden_sums.append(weighted_sum)
                             sig_out, thresh = activators.Sigmoid(weighted_sum)
                             sig_out_batch.append(sig_out)
-                    
+                        
+                        np.random.shuffle(self.labels)
                         intercept, slope = LinearRegression(self.labels, sig_out_batch)
                         loss = binary_cross_entropy(self.labels, sig_out_batch)
                         accu = np.mean(np.array(sig_out_batch) == np.array(self.labels))
@@ -87,7 +95,6 @@ class NeuralNetwork:
                               \nAccuracy: {accu}\n
                             \n________________________\n
                               """)
-                        
                 # Plotting 3D graph
                 fig = go.Figure(data=[go.Scatter3d(
                     x=self.intercept,
@@ -107,7 +114,27 @@ class NeuralNetwork:
                     zaxis_title="Length_Of_Sigmoid"
                 ))
                         
-                fig.write_html(f'plot_LinearRegression_{hidden_layer}.html')
+                fig.write_html(f'plot_LinearRegression_{hidden_layer}.html')                        
+    
+            # Drop columns except 'diagnosis'
+            psuedo = self.data.drop(columns=self.data.columns.difference(['diagnosis']))
+            
+            # Convert sums list to DataFrame
+            self.sums = pd.DataFrame(np.reshape(self.sums, (-1, len(self.features.keys()))))
+
+            # Concatenate psuedo and sums DataFrames, drop 'diagnosis' column
+            self.sums = pd.concat([psuedo, self.sums], axis=1).drop('diagnosis', axis=1)
+
+            # Assign sums DataFrame to features.items
+            self.features.items = self.sums.items
+            #return print(len(self.sums))
+                
+                        
+
+                
+            # hidden_done=True
+            
+            
     # def train(self, hidden_layers=25, epochs=3, learning_rate=0.001):
     #     batch_finished = False
     #     neuron_weighted_sums = []
