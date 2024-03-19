@@ -52,52 +52,168 @@ class NeuralNetwork:
     #         for hidden_layers in range(hidden_layers):
                 
     
-
-    
-    def train(self, hidden_layers=25, epochs=3, learning_rate=0.001):
-        counter=0
-        batch_finished = False
+    def train(self, hidden_layers=1, epochs=1, learning_rate=0.001):
         for epoch in range(epochs):
-            Thresh = 0.0
-            neuron_weighted_sum = None  # Reset at the start of each epoch
-            
-            # Iterate over each feature
-            for feature_name, neurons in self.features.items():
-                input_layer = InputLayer(neurons, batch_size=self.batch_size)
+            for hidden_layer in range(hidden_layers):
+                neurons = self.neurons
+                np.random.shuffle(self.labels)
+                np.random.shuffle(self.weights)
+                np.random.shuffle(self.biases)
                 
-                for _ in range(hidden_layers):
+                for feature_name, neurons in self.features.items():
+                    input_layer = InputLayer(neurons, batch_size=self.batch_size)
                     for batched_inputs in input_layer.batch_inputs():
                         activators = Activations(batched_inputs)
-                    
+                        sig_out_batch = []  # Store sigmoid outputs for the batch
                         for neuron, bias, weights in activators.Iter_neuron():
-                            if not batch_finished:
-                                neuron_weighted_sum = np.dot(neuron, weights) + bias 
-                                sig_out, thresh = activators.Sigmoid(neuron_weighted_sum, threshold=np.random.uniform(0.40, 0.50))
-                                Thresh += thresh
-                                self.neurons.append(neuron)
-                                self.weights.append(weights)
-                                self.biases.append(bias)
-                                self.sig_out.append(sig_out)
-                            else:
-                                np.random.shuffle(self.weights)
-                                np.random.shuffle(self.biases)
-                                
-                                self.neurons, thresh = activators.Sigmoid(self.sig_out, threshold=np.random.uniform(0.40, 0.50))
-                                self.sig_out = self.neurons
-                                
-                    batch_finished = True  # Update batch_finished flag after the first batch
-                    self.sig_out = np.array(self.sig_out).astype(np.int64)
-                    self.labels = np.array(self.labels).astype(np.int64)
-                    reg = LinearRegression(self.labels, self.sig_out)
+                            weighted_sum = np.dot(neuron, weights) + bias
+                            sig_out, thresh = activators.Sigmoid(weighted_sum)
+                            sig_out_batch.append(sig_out)
                     
-                    np.random.shuffle(self.labels)
+                        intercept, slope = LinearRegression(self.labels, sig_out_batch)
+                        loss = binary_cross_entropy(self.labels, sig_out_batch)
+                        accu = np.mean(np.array(sig_out_batch) == np.array(self.labels))
+                        self.intercept.append(intercept)
+                        self.slope.append(slope)
+                        self.neurons.append(sig_out_batch)
+                        self.loss.append(loss)
+                        self.accu.append(accu)
+                        
+                        print(f"""\n
+                            \n_________________________\n
+                              \nIntercept: {intercept}
+                              \nSlope: {slope}
+                              \nLoss: {loss}
+                              \nAccuracy: {accu}\n
+                            \n________________________\n
+                              """)
+                        
+                # Plotting 3D graph
+                fig = go.Figure(data=[go.Scatter3d(
+                    x=self.intercept,
+                    y=self.slope,
+                    z=np.linspace(0, 1, len(sig_out_batch)),  # Assuming sig_out_batch has same length
+                    mode="lines",
+                    line=dict(
+                        color='red',
+                        width=2
+                    ),
+                    name="lines"
+                )])
+                    
+                fig.update_layout(scene=dict(
+                    xaxis_title='slope',
+                    yaxis_title='intercept',
+                    zaxis_title="Length_Of_Sigmoid"
+                ))
+                        
+                fig.write_html(f'plot_LinearRegression_{hidden_layer}.html')
+    # def train(self, hidden_layers=25, epochs=3, learning_rate=0.001):
+    #     batch_finished = False
+    #     neuron_weighted_sums = []
+    #     Thresh = 0.0
+    
+    #     for feature_name, neurons in self.features.items():
+    #         input_layer = InputLayer(neurons, batch_size=self.batch_size)
+    #         for batched_inputs in input_layer.batch_inputs():
                 
-                    # # Shuffle weights and biases after each epoch
-                    # pseudo_weight_gradients = np.ones((len(self.weights), len(self.weights)))
-                    # pseudo_bias_gradients = np.zeros(len(self.weights))
-                    # self.weights=update_params(self.weights, pseudo_weight_gradients, 0.001)
-                    # self.biases=update_params(self.biases, pseudo_bias_gradients, 0.001)
-                    # np.random.shuffle(self.biases)
+    #             activators = Activations(batched_inputs)
+    #             for neuron, bias, weights in activators.Iter_neuron():
+                    
+    #                 weighted_sum = np.dot(neuron, weights) + bias
+                        
+    #                 sig_out, thresh = activators.Sigmoid(weighted_sum, threshold=np.random.uniform(0.44,0.46))
+    #                 Thresh += thresh
+    #                 neuron_weighted_sums.append(weighted_sum)
+                        
+    #                 self.neurons.append(neuron)
+    #                 self.weights.append(weights)
+    #                 self.biases.append(bias)
+    #                 self.sig_out.append(sig_out)
+        
+    #     print(self.sig_out)
+        # Thresh /= len(self.neurons)
+        
+        # for epoch in range(epochs):
+        #     for _ in range(hidden_layers):
+        #         self.neurons = self.sig_out  # Update neurons with the last sig_out values
+        #         activators = Activations(np.array(self.neurons))
+        #         if not batch_finished:
+        #             for neuron, bias, weights in activators.Iter_neuron():
+        #                 weighted_sum = np.dot(neuron, weights) + bias            
+        #                 sig_out, thresh = activators.Sigmoid(weighted_sum, threshold=np.random.uniform(0.44,0.46))
+        #                 Thresh += thresh
+                    
+        #                 self.neurons.append(neuron)
+        #                 self.weights.append(weights)
+        #                 self.biases.append(bias)
+        #                 neuron_weighted_sums.append(weighted_sum)
+        #             batch_finished=True
+        #         else:
+        #             np.random.shuffle(self.weights)
+        #             np.random.shuffle(self.biases)
+                
+        #             self.neurons.clear()  # Clear neurons from the previous iteration
+        #             self.sig_out.clear()  # Clear sig_out from the previous iteration
+
+        #             for neuron_weighted_sum in neuron_weighted_sums:
+        #                 sig_out, thresh = activators.Sigmoid(neuron_weighted_sum, threshold=Thresh)
+        #                 self.sig_out.append(sig_out)
+        #                 self.neurons.append(neuron)  # Assuming activation is calculated here
+        #             reg = LinearRegression(self.labels, self.neurons)
+        #             print(reg)
+        #             # Perform weight updates and other operations as needed
+
+        #             # Reset neuron_weighted_sums for the next iteration
+        #             neuron_weighted_sums.clear()
+
+        #     batch_finished = True 
+                
+        
+    # def train(self, hidden_layers=25, epochs=3, learning_rate=0.001):
+    #     counter=0
+    #     batch_finished = False
+    #     for epoch in range(epochs):
+    #         Thresh = 0.0
+    #         neuron_weighted_sum = None  # Reset at the start of each epoch
+            
+    #         # Iterate over each feature
+    #         for feature_name, neurons in self.features.items():
+    #             input_layer = InputLayer(neurons, batch_size=self.batch_size)
+                
+    #             for _ in range(hidden_layers):
+    #                 for batched_inputs in input_layer.batch_inputs():
+    #                     activators = Activations(batched_inputs)
+                    
+    #                     for neuron, bias, weights in activators.Iter_neuron():
+    #                         if not batch_finished:
+    #                             neuron_weighted_sum = np.dot(neuron, weights) + bias 
+    #                             sig_out, thresh = activators.Sigmoid(neuron_weighted_sum, threshold=np.random.uniform(0.40, 0.50))
+    #                             Thresh += thresh
+    #                             self.neurons.append(neuron)
+    #                             self.weights.append(weights)
+    #                             self.biases.append(bias)
+    #                             self.sig_out.append(sig_out)
+    #                         else:
+    #                             pass
+                                
+    #                 self.sig_out, thresh = activators.Sigmoid(self.sig_out, threshold=np.random.uniform(0.44, 0.45))
+                                
+                                
+    #                 batch_finished = True  # Update batch_finished flag after the first batch
+    #                 self.sig_out = np.array(self.sig_out).astype(np.int64)
+                    
+    #                 self.labels = np.array(self.labels).astype(np.int64)
+    #                 reg = LinearRegression(self.labels, self.sig_out)
+                    
+    #                 np.random.shuffle(self.labels)
+                
+    #                 # # Shuffle weights and biases after each epoch
+    #                 # pseudo_weight_gradients = np.ones((len(self.weights), len(self.weights)))
+    #                 # pseudo_bias_gradients = np.zeros(len(self.weights))
+    #                 # self.weights=update_params(self.weights, pseudo_weight_gradients, 0.001)
+    #                 # self.biases=update_params(self.biases, pseudo_bias_gradients, 0.001)
+    #                 # np.random.shuffle(self.biases)
                     
                                 
                             
@@ -105,104 +221,48 @@ class NeuralNetwork:
                             
                                 
                                 
-                    # batch_finished = True
-                    # print(len(self.neurons))
+    #                 # batch_finished = True
+    #                 # print(len(self.neurons))
                        
                                
                     
-                    Regression_Intercept, Slope = LinearRegression(self.labels, self.sig_out)
-                    self.intercept.append(Regression_Intercept)
-                    self.slope.append(Slope)
+    #                 Regression_Intercept, Slope = LinearRegression(self.labels, self.sig_out)
+    #                 self.intercept.append(Regression_Intercept)
+    #                 self.slope.append(Slope)
                         
                     
-                    print(f"""\n
-                              \n Intercept: {Regression_Intercept}
-                              \n Slope: {Slope}
-                        """)
-                    # pseudo_weight_gradients = np.ones((len(self.weights), len(self.weights)))
-                    # pseudo_bias_gradients = np.zeros(len(self.weights))
-                    # self.weights=update_params(self.weights, pseudo_weight_gradients, 0.001)
-                    # self.biases=update_params(self.biases, pseudo_bias_gradients, 0.001)
-                    loss = binary_cross_entropy(self.labels, self.sig_out)
-                    print("Loss:", loss)
-                    # self.loss.append(loss)
-                    # # sig = self.sig_out.copy()
-                    # # neur = self.neurons.copy()
-                    # # weight = self.weights.copy()
-                    # # bias = self.biases.copy()
-                    accu= np.mean(np.array(self.sig_out) == np.array(self.labels))
-                    # # self.accu.append(accu)
-                    print(f"accu: {accu}")
-                    # # self.sig_out.clear()
-                    # # self.neurons.clear()
-                    # # self.biases.clear()
-                    # # self.weights.clear()
+    #                 print(f"""\n
+    #                           \n Intercept: {Regression_Intercept}
+    #                           \n Slope: {Slope}
+    #                     """)
+    #                 # pseudo_weight_gradients = np.ones((len(self.weights), len(self.weights)))
+    #                 # pseudo_bias_gradients = np.zeros(len(self.weights))
+    #                 # self.weights=update_params(self.weights, pseudo_weight_gradients, 0.001)
+    #                 # self.biases=update_params(self.biases, pseudo_bias_gradients, 0.001)
+    #                 loss = binary_cross_entropy(self.labels, self.sig_out)
+    #                 print("Loss:", loss)
+    #                 # self.loss.append(loss)
+    #                 # # sig = self.sig_out.copy()
+    #                 # # neur = self.neurons.copy()
+    #                 # # weight = self.weights.copy()
+    #                 # # bias = self.biases.copy()
+    #                 accu= np.mean(np.array(self.sig_out) == np.array(self.labels))
+    #                 # # self.accu.append(accu)
+    #                 print(f"accu: {accu}")
+    #                 # # self.sig_out.clear()
+    #                 # # self.neurons.clear()
+    #                 # # self.biases.clear()
+    #                 # # self.weights.clear()
             
             
             
             
-            # fig = go.Figure(data=[go.Scatter3d(
-            #     x= [i for i in range(len(self.accu))],
-            #     y = self.accu,
-            #     z = np.linspace(0,1, len(self.accu)),
-            #     mode="lines",
-            #     line=dict(
-            #         color='red',
-            #         width=2
-            #     ),
-            #     name="lines"
-            # )])
+
                     
-            # fig.update_layout(scene=dict(
-            #     xaxis_title='index',
-            #     yaxis_title='loss'
-            # ))
-                    
-            # fig.write_html(f"loss_plot{epoch}.html")
-            
-                    
-            # print(F"\n Epoch: {epoch}")
- 
-            # # Create a 3D scatter plot
-            # fig = go.Figure(data=[go.Scatter3d(
-            #     x=self.slope,
-            #     y=self.intercept,
-            #     z=np.linspace(0, 1, len(sig)),
-            #     mode='markers',
-            #     marker=dict(
-            #         size=5,
-            #         color='blue',                # set color to an array/list of desired values
-            #         opacity=0.8
-            #     ),
-            #     name='Markers'
-            # )])
-        
-            # # Add lines representing the data
-            # fig.add_trace(go.Scatter3d(
-            #     x=self.slope,
-            #     y=self.intercept,
-            #     z=np.linspace(0, 1, len(sig)),
-            #     mode='lines',
-            #     line=dict(
-            #         color='red',               # set color to an array/list of desired values
-            #         width=2
-            #     ),
-            #     name='Lines'
-            # ))
-        
-            # # Update layout
-            # fig.update_layout(scene=dict(
-            #     xaxis_title='Intercept',
-            #     yaxis_title='Slope',
-            #     zaxis_title='Epochs'
-            # ))
-        
-            # # Save plot as HTML file
-            # fig.write_html(f'plot_epoch_{epoch}.html')
                         
                 
 if __name__ == "__main__":
     neural_network = NeuralNetwork("breast-cancer.csv", 569)
-    output = neural_network.train()                            
+    output = neural_network.train(hidden_layers=5,epochs=5)                            
                         
         
