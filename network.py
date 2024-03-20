@@ -13,8 +13,6 @@ from Acts import *
 import pandas as pd
 
 
-import torch as tt
-#from NN.OrganizedNeuralNetwork import *
 class NeuralNetwork:
     def __init__(self, data_path, batch_size):
         
@@ -23,99 +21,95 @@ class NeuralNetwork:
         self.features = self.data.drop('diagnosis', axis=1)
         self.labels = (self.data['diagnosis'].values == 'M').astype(int)
         self.batch_size = batch_size
-        self.hidden_sums, self.slope, self.intercept, self.neurons,self.weights,self.biases,self.sums,self.sig_out,self.sig_der,self.pred_labels,self.accu,self.loss,self.loss_der=([],[],[],[],[],[],[],[],[],[],[],[],[])
+        self.slope, self.intercept,self.weights,self.biases,self.sums,self.accu,self.loss,self.loss_der=([],[],[],[],[],[],[],[])
 
         self.neuron_data = {
             "Weights": self.weights,
             "Bias": self.biases,
+            "Slope": self.slope,
+            "Intercept": self.intercept,
+            "Loss": self.loss,
+            "Loss_Gradient": self.loss_der,
         }
-        
-        
-        self.activation_data = {
-            "Sigmoid_Output":self.sig_out,
-            "Sigmoid_Derivative":self.sig_der,
-            "Predicted_Labels": self.pred_labels,
-        }
-        
-        self.normal_data = {
-            "Accuracy":self.accu,
-            "Normal":self.loss,
-            "Normal_Derivative":self.loss_der
-        }
-        
-
-
         self.epsilon = 1e-15
-    # def propagation(self, output_layer_gradient, hidden_layers=1, epochs=1, learning_rate=0.001):
-        
-    #     for epoch in range(epochs):
-    #         for hidden_layers in range(hidden_layers):
-                
-    
+
     def train(self, hidden_layers=1, epochs=1, learning_rate=0.001):
+        batches_finished=False
+        hidden_finished = False
+        # iterate over epochs
         for epoch in range(epochs):
+            # randomize weights, biases, and labels beginning each epoch
             np.random.shuffle(self.weights)
             np.random.shuffle(self.biases)
             np.random.shuffle(self.labels)
             
+            # iterate over hidden layers
             for hidden_layer in range(hidden_layers):
-                neurons = self.neurons
-                hidden_done=False
+                # iterate over neurons
                 for _, neurons in self.features.items():
-                    
+                    # Configure the batch size for the input layer
                     input_layer = InputLayer(neurons, batch_size=self.batch_size)
+                    # iterate over batches
                     for batched_inputs in input_layer.batch_inputs():
+                        # assign activation functions to inputs
                         activators = Activations(batched_inputs)
-                        sig_out_batch = []  # Store sigmoid outputs for the batch
+                        # store sigmoid outputs
+                        sig_out_batch = []
+                        
+                        # within each batch iterate over the batch of neurons
                         for neuron, bias, weights in activators.Iter_neuron():
-                            weighted_sum = np.dot(neuron, weights) + bias
-                            try:
+                            if batches_finished == True:
+                                if not isinstance(self.weights, np.ndarray):
+                                    self.weights = np.array(self.weights)
+                                    self.biases = np.array(self.biases)
                                 
+                                self.weights = self.weights.flatten()
+                                self.biases = self.biases.flatten()
+                                
+                                self.sums = np.dot(self.sums, self.weights) + self.biases
+                                
+                                sig_out_batch, thresh = activators.Sigmoid(self.sums)
+                   
+                                #sig_out_batch = np.reshape(sig_out_batch,newshape=(31,569))
+                                for batches in sig_out_batch:
+                                    intercept,slope = LinearRegression(self.labels, batches)
+                                    bin_cross_entropy = binary_cross_entropy(self.labels, batches)
+                                    
+                                    self.loss_der = np.array([])
+                                    self.loss_der = CrossEntropy_Gradient(self.labels, batches)
+                                    
+                                    self.weights = np.reshape(np.array(self.weights), newshape=(31,569))
+                                    self.biases = np.reshape(np.array(self.biases), newshape=(31,569))
+                                    for batched_weights in self.weights:
+                                        batched_weights -= learning_rate * np.array(self.loss_der)
+                                        
+                                        
+                                    for batched_biases in self.biases:
+                                        batched_biases -= learning_rate * np.array(self.loss_der)
+                                        
+                                    #self.intercept.append(intercept), self.slope.append(slope), self.loss.append(bin_cross_entropy)
+                                
+                                    
+                                
+                                
+                                
+                                
+                            else:
+                                weighted_sum = np.dot(neuron, weights) + bias
+                                sig_out, thresh = activators.Sigmoid(weighted_sum)
+                                sig_out_batch.append(sig_out)
                                 self.sums.append(weighted_sum)
-                            except Exception:
-                                self.hidden_sums.append(weighted_sum)
-                            sig_out, thresh = activators.Sigmoid(weighted_sum)
-                            sig_out_batch.append(sig_out)
-                        
-                        np.random.shuffle(self.labels)
-                        intercept, slope = LinearRegression(self.labels, sig_out_batch)
-                        loss = binary_cross_entropy(self.labels, sig_out_batch)
-                        accu = np.mean(np.array(sig_out_batch) == np.array(self.labels))
-                        self.intercept.append(intercept)
-                        self.slope.append(slope)
-                        self.neurons.append(sig_out_batch)
-                        self.loss.append(loss)
-                        self.accu.append(accu)
-                        
-                        print(f"""\n
-                            \n_________________________\n
-                              \nIntercept: {intercept}
-                              \nSlope: {slope}
-                              \nLoss: {loss}
-                              \nAccuracy: {accu}\n
-                            \n________________________\n
-                              """)
-                # Plotting 3D graph
-                fig = go.Figure(data=[go.Scatter3d(
-                    x=self.intercept,
-                    y=self.slope,
-                    z=np.linspace(0, 1, len(sig_out_batch)),  # Assuming sig_out_batch has same length
-                    mode="lines",
-                    line=dict(
-                        color='red',
-                        width=2
-                    ),
-                    name="lines"
-                )])
-                    
-                fig.update_layout(scene=dict(
-                    xaxis_title='slope',
-                    yaxis_title='intercept',
-                    zaxis_title="Length_Of_Sigmoid"
-                ))
-                        
-                fig.write_html(f'plot_LinearRegression_{hidden_layer}.html')                        
-    
+                                self.weights.append(weights)
+                                self.biases.append(bias)
+                
+                
+                batches_finished = True
+                accu = np.mean(np.array(sig_out_batch) == np.array(self.labels))
+                print(accu)
+            
+            
+            #print(bin_cross_entropy)
+                
             # Drop columns except 'diagnosis'
             psuedo = self.data.drop(columns=self.data.columns.difference(['diagnosis']))
             
@@ -126,8 +120,45 @@ class NeuralNetwork:
             self.sums = pd.concat([psuedo, self.sums], axis=1).drop('diagnosis', axis=1)
 
             # Assign sums DataFrame to features.items
-            self.features.items = self.sums.items
-            #return print(len(self.sums))
+            self.features.items = self.sums.items 
+            
+            
+            
+            hidden_finished = True
+            print(bin_cross_entropy)
+                                
+               
+                            
+        
+                            
+             
+                
+
+            # Plotting 3D graph
+            fig = go.Figure(data=[go.Scatter3d(
+                x=self.intercept,
+                y=self.slope,
+                z=np.linspace(0, 1, len(sig_out_batch)),  # Assuming sig_out_batch has same length
+                mode="lines",
+                line=dict(
+                    color='red',
+                    width=2
+                ),
+                name="lines"
+            )])
+                    
+            fig.update_layout(scene=dict(
+                xaxis_title='slope',
+                yaxis_title='intercept',
+                zaxis_title="Length_Of_Sigmoid"
+            ))
+                        
+            fig.write_html(f'plot_LinearRegression_{epoch}.html')                        
+                
+
+        # return print(len(self.sums))
+          
+            
                 
                         
 

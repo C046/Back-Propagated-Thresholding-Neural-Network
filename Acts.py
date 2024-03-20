@@ -37,23 +37,105 @@ class Activations:
         
         except StopIteration:
             pass
+    def mpwhere(self, condition, x, y):
+        result = []
+        for c, xi, yi in zip(condition, x, y):
+            result.append(xi if c else yi)
+        return result
     
-    def Sigmoid(self, x, threshold=np.random.uniform(0.44, 0.46), epsilon=1e-15):
-        if not isinstance(x, (list, tuple, np.ndarray)):
-            # If x is not iterable, compute sigmoid directly
-            x = np.array(x, dtype=np.float64)
-            exp = mp.exp(-x)
-            bottom = 1 + exp
-            result = 1 / bottom
-        else:
-            # If x is iterable, compute sigmoid iteratively
-            exp = np.exp(-x)
-            bottom = foreach(1, exp, action=add_value)
-            result = foreach(1, bottom, action=divide_value)
+    def Sigmoid(self, x, threshold=np.random.uniform(0.43,0.46)):
+        # If x is a single value, convert it to an array
+        if not isinstance(x, np.ndarray):
+            x = np.array([x])
+       
+        x = x/np.max(np.abs(x))
+        
+        x_exp = np.exp(x)
+        bottom = 1+x_exp
+        
+        res = 1/bottom
+        
+        res = np.where(res >= threshold, 1,0)
+ 
+        
+        return res,threshold
+        
+        # for val in x:
+        #     x_exp = np.exp(val)
+        #     bottom = 1+x_exp
+        #     res = 1/bottom
+        #     result.append(float(res))
+        
+        # return result
+    
+        # for val in x:
+        #     # Adjust the threshold if necessary
+        #     if val >= 2:
+        #         val = 2  # Cap the value at 2 or scale it as needed
+            
+        #     # Compute the sigmoid for each value
+        #     x_exp = mp.exp(val)
+        #     bottom = 1 + x_exp
+        #     res = 1 / bottom
+        #     result.append(float(res))
+    
+        # # Return the result and threshold
+        # return result, threshold
+        
+        # x_exp = mp.exp(-np.mean(-x))
+        # bottom = (1+x_exp) + epsilon
+        
+        # return (1/bottom), threshold
+        
+        
+        
+        
+        # # Scale and normalize the input values
+        # #max_value = np.max(np.abs(x))
+        # # normalization_factor = 10 ** np.ceil(np.log10(max_value))
+        # # x_normalized = x / normalization_factor
+    
+        # # Compute sigmoid for each normalized value
+        # for value in x:
+        #     value = -value
+        #     Value = float(mp.exp(value))
+        #     bottom = (1 + Value) + epsilon
+        #     res = 1 / bottom
+        #     result.append(res)
+        
+        # return result, threshold    
 
-        # Apply threshold if necessary
-        result = np.where(result >= threshold, 1.0, 0.0)
-        return result, threshold
+        # res = []
+        # if not isinstance(x, (list, tuple, np.ndarray)):
+        #     # If x is not iterable, compute sigmoid directly
+        #     x = mp.mpf(str(x))
+        #     exp = mp.exp(-x)
+        #     bottom = 1 + exp
+        #     result = 1 / bottom+epsilon
+            
+        # else:
+            
+        #     for value in x:
+        #         value = np.array(value, dtype=np.float64)  # Ensure value is a NumPy array
+        #         value_mp = mp.mpf(str(value))  # Convert to mpmath's arbitrary precision float
+        #         exp = mp.exp(-value_mp)
+        #         bottom = 1 + exp
+        #         result = 1 / bottom
+        #         res.append(result)
+
+        # return res, threshold
+    #    return res, threshold  # Return the result and threshold value
+        #     try:
+                
+        #         exp = mp.exp(x)
+        #     except Exception as E:
+        #         print(E)
+        #     bottom = foreach(1, exp, action=add_value)
+        #     result = foreach(1, bottom, action=divide_value)
+
+        # # Apply threshold if necessary
+        # result = np.where(result >= threshold, 1.0, 0.0)
+        # return result, threshold
 
 
 

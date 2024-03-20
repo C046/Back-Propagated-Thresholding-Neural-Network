@@ -297,6 +297,7 @@ def linear_rate_of_change(linear_derivative, predicted_outputs):
 def linear_partial_derivative(linear_derivative, linear_rate_of_change):
     return foreach(linear_derivative, linear_rate_of_change, action=lambda x, y: x * y)
 
+
 def LinearRegression(values, predicted_values):
     """
     Perform simple linear regression.
@@ -341,12 +342,24 @@ def LinearRegression(values, predicted_values):
 
     return intercept, slope
 
+def CrossEntropy_Gradient(y, y_hat, epsilon=1e+15):
+    y = np.array(y)
+    y_hat = np.array(y_hat)
+    
+    
+    
+    result = -(y/(y_hat+epsilon)) + (1-y)/((1-y_hat)+epsilon)
+    return result 
 
 def binary_cross_entropy(ground_truth, predicted, epsilon=1e-15):
+    
+    ground_truth = np.array(ground_truth)
+    predicted = np.array(predicted)
+    
     n = 1 / ground_truth.size
-    predicted = np.clip(predicted, epsilon, 1 - epsilon)  # Clip predicted probabilities to prevent log(0) or log(1)
+    #predicted = np.clip(predicted, epsilon, 1 - epsilon)  # Clip predicted probabilities to prevent log(0) or log(1)
     
     # Apply the binary cross entropy formula using foreach function
-    loss = foreach(ground_truth, predicted, action=lambda x, y: -n * (x * np.log(y) + (1 - x) * np.log(1 - y)))
+    loss = foreach(ground_truth, predicted, action=lambda x, y: -n * (x * np.log(y+epsilon) + (1 - x) * np.log(1 - y+epsilon)))
     
-    return np.mean(loss)
+    return loss
