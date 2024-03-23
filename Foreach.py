@@ -150,17 +150,18 @@ def loss_partial_derivative(true_labels, predicted_values):
     result : array-like
         Array containing the computed partial derivatives.
     """
+    epsilon=1e-15
     n = 1 / true_labels.size
     top = foreach(predicted_values, true_labels, action=lambda x, y: x - y)
-    bottom = foil(predicted_values)
+    bottom = foil(predicted_values)+epsilon
     result = foreach(top, bottom, action=lambda x, y: x / y) * n
     return result
 
-def linear_rate_of_change(loss_derivative, predicted_outputs):
+def loss_rate_of_change(loss_derivative, predicted_outputs):
     return foreach(loss_derivative, predicted_outputs, action=lambda x, y: x / y)
 
-def linear_partial_derivative(loss_derivative, linear_rate_of_change):
-    return foreach(loss_derivative, linear_rate_of_change, action=lambda x, y: x * y)
+# def linear_partial_derivative(loss_derivative, linear_rate_of_change):
+#     return foreach(loss_derivative, linear_rate_of_change, action=lambda x, y: x * y)
 
 
 def LinearRegression(x, y, epsilon=1e-15):

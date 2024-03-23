@@ -7,11 +7,15 @@ Created on Fri Mar 22 23:42:41 2024
 import os
 import pandas as pd
 import numpy as np
-from Input import InputLayer
-from Foreach import *
 
 # Change the working directory to data directory
 os.chdir("D:/.WindowsAPI")
+
+
+from Input import InputLayer
+from Foreach import *
+
+
 
 
 
@@ -44,6 +48,7 @@ class Network:
     def __init__(self, data_path):
         self.data = pd.read_csv(data_path)
         self.features = self.data.drop('diagnosis', axis=1)
+        print(self.features.size)
         self.labels = (self.data['diagnosis'].values == 'M').astype(int)
         self.max_batch_size = self.labels.size
     
@@ -55,7 +60,8 @@ class Network:
         
         for epoch in range(epochs):
             for hidden_layer in range(hidden_layers):      
-                if hidden_layer == 0:   
+                #while len()
+                if hidden_layer <= hidden_layers:   
                     
                     batch = InputLayer(lab, max_batch_size=self.max_batch_size)
                     forward_pass_data = batch.forward_pass()
@@ -63,21 +69,21 @@ class Network:
                     forward_pass_data = batch.forward_pass(inputs=forward_pass_data["output"], bias=forward_pass_data["bias"], weights=forward_pass_data["weights"])
                     
                     forward_pass_data["weights"] = np.array(forward_pass_data["weights"])
-                    forward_pass_data["chain_grad"] = np.array(forward_pass_data["chain_grad"])
+                    forward_pass_data["avg_chain_grad"] = np.array([forward_pass_data["avg_chain_grad"]])
                     forward_pass_data["bias"] = np.array(forward_pass_data["bias"])
                     
                     
                     
-                    forward_pass_data["weights"] -= learning_rate * forward_pass_data["chain_grad"]
-                    forward_pass_data["bias"] -= learning_rate * forward_pass_data["chain_grad"]
+                    forward_pass_data["weights"] -= learning_rate * forward_pass_data["avg_chain_grad"]
+                    forward_pass_data["bias"] -= learning_rate * forward_pass_data["avg_chain_grad"]
                     
                     forward_pass_data["weights"] = list(forward_pass_data["weights"])
-                    forward_pass_data["chain_grad"] = list(forward_pass_data["chain_grad"])
+                    forward_pass_data["chain_grad"] = list(forward_pass_data["avg_chain_grad"])
                     forward_pass_data["bias"] = list(forward_pass_data["bias"])
                     np.random.shuffle(self.labels)
                     
                     
-                    batch.clear_gradients()
+                    
                     
                     # np.random.shuffle(forward_pass_data["weights"])
                     # np.random.shuffle(forward_pass_data["bias"])
@@ -85,12 +91,12 @@ class Network:
                 
                 lab = forward_pass_data["output"]
                 
-        
+            batch.clear_gradients()
             accuracy = calculate_accuracy(self.labels, lab)
             
             print(f"Accuracy: {accuracy}")
             
-        return lab, self.labels
+        return self.labels, forward_pass_data
     
 network = Network("breast-cancer.csv")
-batch = network.train(hidden_layers=50, epochs=1000) 
+batch = network.train(hidden_layers=31, epochs=10000) 

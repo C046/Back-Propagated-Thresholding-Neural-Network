@@ -6,7 +6,7 @@ Created on Mon Jan 29 15:05:40 2024
 """
 import numpy as np
 from Acts import Activations
-from Foreach import binary_cross_entropy, binary_entropy_gradient
+from Foreach import binary_cross_entropy, binary_entropy_gradient, loss_partial_derivative
 from itertools import cycle 
 
 
@@ -78,6 +78,7 @@ class InputLayer(Activations):
             "sig_gradients": [],
             "loss": [],
             "loss_gradients": [],
+            "loss_partial": [],
             "chain_grad": [],
             "weights": [],
             "bias": [],
@@ -104,11 +105,11 @@ class InputLayer(Activations):
             for input_neuron, output_sig in zip(batched_inputs, cycle(self.data["output"])):
                 self.data["loss"].append(binary_cross_entropy(input_neuron, output_sig))
                 self.data["loss_gradients"].append(binary_entropy_gradient(input_neuron, output_sig))
-            
-            
+                self.data["loss_partial"].append(loss_partial_derivative(input_neuron, output_sig))
+                
             #for sig_grad, loss_grad in zip()
-        for sig_grad, loss_grad in zip(self.data["sig_gradients"], self.data["loss_gradients"]):
-            self.data["chain_grad"].append(sig_grad*loss_grad)
+        for sig_grad, loss_grad, loss_partial in zip(self.data["sig_gradients"], self.data["loss_gradients"], self.data["loss_partial"]):
+            self.data["chain_grad"].append(sig_grad*loss_grad*loss_partial)
         
         self.data["avg_chain_grad"]+=np.mean(self.data["chain_grad"])
         
