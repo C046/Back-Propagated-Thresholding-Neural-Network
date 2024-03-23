@@ -23,10 +23,6 @@ def divide_value(arr, value):
 def multiply_value(arr, value):
     return np.multiply(arr, value)
 
-
-
-
-
 def foreach(value, other_values, action, size=None):
     
     if not isinstance(value, np.ndarray):
@@ -135,150 +131,12 @@ def foil(y_hat):
     result = foreach(y_hat, one_minus_y_hat, action=lambda x, y: x * y)
     return result
 
-def calculate_gradient(true_labels, predicted_outputs):
-    """
-    Compute the gradient of the loss function with respect to the parameters (weights and biases) of the neural network.
 
-    Parameters:
-    true_labels : array-like
-        True labels.
-    predicted_outputs : array-like
-        Predicted output values.
-    activations : list of array-like
-        List containing the activations of each layer.
-
-    Returns:
-    gradients : list of dictionaries
-        List containing dictionaries of gradients for each layer.
-    """
-    num_samples = true_labels.shape[0]
-    num_layers = len(predicted_outputs)
-    gradients = []
-
-    # Compute gradient for the output layer
-    output_gradient = linear_derivative(true_labels, predicted_outputs)
-    output_rate_of_change = linear_rate_of_change(output_gradient, predicted_outputs[-2])
-    output_partial_derivative = linear_partial_derivative(output_gradient, output_rate_of_change)
-    output_gradients = {
-        'weights': [],
-        'biases': []
-    }
-    for i in range(len(output_partial_derivative)):
-        # Compute gradient for weights
-        weight_gradient = output_partial_derivative[i]
-        output_gradients['weights'].append(weight_gradient)
-        
-        # Compute gradient for biases
-        bias_gradient = output_partial_derivative[i]
-        output_gradients['biases'].append(bias_gradient)
-    gradients.append(output_gradients)
-
-    # Compute gradient for hidden layers
-    for layer in reversed(range(1, num_layers - 1)):
-        hidden_gradient = None  # Compute gradient for hidden layer
-        hidden_gradients = {
-            'weights': [],
-            'biases': []
-        }
-        for i in range(len(hidden_gradient)):
-            # Compute gradient for weights
-            weight_gradient = None
-            hidden_gradients['weights'].append(weight_gradient)
-            
-            # Compute gradient for biases
-            bias_gradient = None
-            hidden_gradients['biases'].append(bias_gradient)
-        gradients.append(hidden_gradients)
-
-    return gradients
-
-def gradient_descent(parameters, gradients, learning_rate):
-    """
-    Update the parameters (weights and biases) of the neural network using gradient descent.
-
-    Parameters:
-    parameters : list of dictionaries
-        List containing dictionaries of parameters (weights and biases) for each layer.
-    gradients : list of dictionaries
-        List containing dictionaries of gradients for each layer.
-    learning_rate : float
-        Learning rate for gradient descent.
-
-    Returns:
-    updated_parameters : list of dictionaries
-        List containing dictionaries of updated parameters (weights and biases) for each layer.
-    """
-    updated_parameters = []
-    for layer_params, layer_gradients in zip(parameters, gradients):
-        updated_layer_params = {
-            'weights': [],
-            'biases': []
-        }
-        for param, grad in zip(layer_params['weights'], layer_gradients['weights']):
-            updated_param = foreach(param, grad, action=lambda x, y: x - learning_rate * y)
-            updated_layer_params['weights'].append(updated_param)
-        
-        for param, grad in zip(layer_params['biases'], layer_gradients['biases']):
-            updated_param = foreach(param, grad, action=lambda x, y: x - learning_rate * y)
-            updated_layer_params['biases'].append(updated_param)
-        
-        updated_parameters.append(updated_layer_params)
-    
-    
-    return updated_parameters
-
-
-# # Example neural network parameters (weights and biases)
-# parameters = [
-#     {
-#         'weights': [np.array([[0.1, 0.2], [0.3, 0.4]]), np.array([[0.5], [0.6]])],
-#         'biases': [np.array([0.7, 0.8]), np.array([0.9])]
-#     },
-#     {
-#         'weights': [np.array([[0.1, 0.2]]), np.array([[0.3]])],
-#         'biases': [np.array([0.4]), np.array([0.5])]
-#     }
-# ]
-
-# # Example gradients computed during backpropagation
-# gradients = [
-#     {
-#         'weights': [np.array([[0.01, 0.02], [0.03, 0.04]]), np.array([[0.05], [0.06]])],
-#         'biases': [np.array([0.07, 0.08]), np.array([0.09])]
-#     },
-#     {
-#         'weights': [np.array([[0.01, 0.02]]), np.array([[0.03]])],
-#         'biases': [np.array([0.04]), np.array([0.05])]
-#     }
-# ]
-
-# # Learning rate for gradient descent
-# learning_rate = 0.01
-def update_params(params, gradients, learning_rate):
-    """
-    Update the parameters (weights or biases) using gradient descent.
-    
-    Args:
-    - params (list): List of parameters to be updated.
-    - gradients (list): List of gradients corresponding to each parameter.
-    - learning_rate (float): The learning rate for gradient descent.
-    
-    Returns:
-    - updated_params (list): List of updated parameters after applying gradient descent.
-    """
-    updated_params = []
-    for param, gradient in zip(params, gradients):
-        updated_param = param - learning_rate * gradient
-        updated_params.append(updated_param)
-    return updated_params
 # # Perform one iteration of gradient descent
 # updated_parameters = gradient_descent(parameters, gradients, learning_rate)
 
-# # Print updated parameters
-# print("Updated Parameters:")
-# for layer_params in updated_parameters:
-#     print(layer_params)
-def linear_derivative(true_labels, predicted_values):
+
+def loss_partial_derivative(true_labels, predicted_values):
     """
     Compute the partial derivative of the loss function with respect to the predicted values.
 
@@ -298,11 +156,11 @@ def linear_derivative(true_labels, predicted_values):
     result = foreach(top, bottom, action=lambda x, y: x / y) * n
     return result
 
-def linear_rate_of_change(linear_derivative, predicted_outputs):
-    return foreach(linear_derivative, predicted_outputs, action=lambda x, y: x / y)
+def linear_rate_of_change(loss_derivative, predicted_outputs):
+    return foreach(loss_derivative, predicted_outputs, action=lambda x, y: x / y)
 
-def linear_partial_derivative(linear_derivative, linear_rate_of_change):
-    return foreach(linear_derivative, linear_rate_of_change, action=lambda x, y: x * y)
+def linear_partial_derivative(loss_derivative, linear_rate_of_change):
+    return foreach(loss_derivative, linear_rate_of_change, action=lambda x, y: x * y)
 
 
 def LinearRegression(x, y, epsilon=1e-15):
@@ -347,21 +205,7 @@ def LinearRegression(x, y, epsilon=1e-15):
     intercept = y_mean - slope * x_mean
     
     return intercept, slope
-    
-    
 
-    # # Calculate the slope
-    # numerator = np.sum(diff_x * diff_y)
-    # for value in diff_x:
-    #     value = value**2
-        
-    # denominator = mp.fsum(diff_x)  # Use mpmath's fsum for precision
-    # slope = mp.mpf(numerator) / denominator
-
-    # # Calculate the intercept
-    # intercept = y_mean - slope * x_mean
-
-    # return intercept, slope
 
 def binary_entropy_gradient(y, y_hat, epsilon=1e+15):
     y = np.array(y)

@@ -8,6 +8,7 @@ import os
 import pandas as pd
 import numpy as np
 from Input import InputLayer
+from Foreach import *
 
 # Change the working directory to data directory
 os.chdir("D:/.WindowsAPI")
@@ -73,6 +74,7 @@ class Network:
                     forward_pass_data["weights"] = list(forward_pass_data["weights"])
                     forward_pass_data["chain_grad"] = list(forward_pass_data["chain_grad"])
                     forward_pass_data["bias"] = list(forward_pass_data["bias"])
+                    np.random.shuffle(self.labels)
                     
                     
                     batch.clear_gradients()
@@ -85,10 +87,10 @@ class Network:
                 
         
             accuracy = calculate_accuracy(self.labels, lab)
-            np.random.shuffle(self.labels)
+            
             print(f"Accuracy: {accuracy}")
             
         return lab, self.labels
     
 network = Network("breast-cancer.csv")
-batch = network.train(hidden_layers=100, epochs=1000) 
+batch = network.train(hidden_layers=50, epochs=1000) 
