@@ -43,22 +43,44 @@ class Activations:
             result.append(xi if c else yi)
         return result
     
-    def Sigmoid(self, x, threshold=np.random.uniform(0.43,0.46)):
+    def Sigmoid(self, x, threshold=np.random.uniform(0.43,0.46), gradient=False):
         # If x is a single value, convert it to an array
         if not isinstance(x, np.ndarray):
             x = np.array([x])
-       
-        x = x/np.max(np.abs(x))
         
-        x_exp = np.exp(x)
+        if x.size > 1:
+            x = x/np.max(np.abs(x))
+        else:
+            x = x/np.abs(x)
+            
+        
+        x_exp = np.exp(-x)
         bottom = 1+x_exp
         
         res = 1/bottom
         
-        res = np.where(res >= threshold, 1,0)
- 
+        if gradient:
+            pass
+        else:    
+            res = np.where(res >= threshold, 1,0)
+        
+        if res.size <= 1:
+            return res[0], threshold
         
         return res,threshold
+    
+    def Sigmoid_Gradient(self, x ):
+        if not isinstance(x, np.ndarray):
+            x = np.array([x])+self.epsilon
+        
+        
+        
+        x_sig, thresh = self.Sigmoid(x, gradient=True)
+        x_sig = x_sig*(1-x_sig)
+        
+        
+            
+        return x_sig
         
         # for val in x:
         #     x_exp = np.exp(val)

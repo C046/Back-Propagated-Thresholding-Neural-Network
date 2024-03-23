@@ -10,7 +10,7 @@ Created on Fri Mar 15 13:16:11 2024
 
 import numpy as np
 import plotly.graph_objects as go
-
+import mpmath as mp
 def subtract_value(arr, value):
     return np.subtract(arr, value)
 
@@ -47,7 +47,10 @@ def foreach(value, other_values, action, size=None):
             # Apply the action function to each element of the matrix
             result = action(value, other_values)
             # Reshape the result to match the original shape of the matrix
-            result = np.reshape(result, newshape=shape)
+            try:    
+                result = np.reshape(result, newshape=shape)
+            except Exception as E:
+                return result
     else:
         # Handle regular iterable operations
         if not callable(action):
@@ -214,10 +217,14 @@ def gradient_descent(parameters, gradients, learning_rate):
         for param, grad in zip(layer_params['weights'], layer_gradients['weights']):
             updated_param = foreach(param, grad, action=lambda x, y: x - learning_rate * y)
             updated_layer_params['weights'].append(updated_param)
+        
         for param, grad in zip(layer_params['biases'], layer_gradients['biases']):
             updated_param = foreach(param, grad, action=lambda x, y: x - learning_rate * y)
             updated_layer_params['biases'].append(updated_param)
+        
         updated_parameters.append(updated_layer_params)
+    
+    
     return updated_parameters
 
 
@@ -298,51 +305,65 @@ def linear_partial_derivative(linear_derivative, linear_rate_of_change):
     return foreach(linear_derivative, linear_rate_of_change, action=lambda x, y: x * y)
 
 
-def LinearRegression(values, predicted_values):
+def LinearRegression(x, y, epsilon=1e-15):
     """
     Perform simple linear regression.
 
     Parameters:
-    values : array-like, shape (n_samples,)
+    x : array-like or scalar
         Independent variable values.
-    predicted_values : array-like, shape (n_samples,)
+    y : array-like or scalar
         Dependent variable values (predictions).
 
     Returns:
-    intercept : float
+    intercept : mp.mpf
         Intercept of the regression line.
-    slope : float
+    slope : mp.mpf
         Slope of the regression line.
     """
-    if not isinstance(values, np.ndarray):
-        if isinstance(values, (int, float)):
-            values = [values]
-        values = np.array(values)
+    # Convert inputs to numpy arrays if they're not already
+    if not isinstance(x, np.ndarray):
+        x = np.array(x)
+        
+    if not isinstance(y, np.ndarray):
+        y = np.array(y)
+        
+    x_mean, y_mean = np.mean(x), np.mean(y)
+    
+    if x_mean == x:
+        pass
+    else:
+        x = x-x_mean
+    
+    if y_mean == y:
+        pass
+    else:
+        y = y-y_mean
+    
+    
 
-    if not isinstance(predicted_values, np.ndarray):
-        if isinstance(predicted_values, (int, float)):
-            predicted_values = [predicted_values]
-        predicted_values = np.array(predicted_values)
-
-    # Calculate the means
-    values_mean = np.mean(values)
-    predicted_mean = np.mean(predicted_values)
-
-    # Calculate the differences from the means
-    diff_values = foreach(values, values_mean, action=subtract_value)
-    diff_predicted = foreach(predicted_values, predicted_mean, action=subtract_value)
-
-    # Calculate the slope
-    numerator = foreach(diff_values, diff_predicted, action=multiply_value)
-    denominator = foreach(diff_values, diff_values, action=multiply_value)
-    slope = np.sum(numerator) / np.sum(denominator)
-
-    # Calculate the intercept
-    intercept = predicted_mean - slope * values_mean
-
+            
+    slope = np.sum(x*y)/(np.sum(x**2)+epsilon)
+    intercept = y_mean - slope * x_mean
+    
     return intercept, slope
+    
+    
 
-def CrossEntropy_Gradient(y, y_hat, epsilon=1e+15):
+    # # Calculate the slope
+    # numerator = np.sum(diff_x * diff_y)
+    # for value in diff_x:
+    #     value = value**2
+        
+    # denominator = mp.fsum(diff_x)  # Use mpmath's fsum for precision
+    # slope = mp.mpf(numerator) / denominator
+
+    # # Calculate the intercept
+    # intercept = y_mean - slope * x_mean
+
+    # return intercept, slope
+
+def binary_entropy_gradient(y, y_hat, epsilon=1e+15):
     y = np.array(y)
     y_hat = np.array(y_hat)
     

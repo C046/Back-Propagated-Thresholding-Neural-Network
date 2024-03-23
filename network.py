@@ -11,7 +11,8 @@ from Foreach import *
 from Input import *
 from Acts import *
 import pandas as pd
-
+from itertools import cycle
+import plotly.graph_objects as go
 
 class NeuralNetwork:
     def __init__(self, data_path, batch_size):
@@ -21,15 +22,20 @@ class NeuralNetwork:
         self.features = self.data.drop('diagnosis', axis=1)
         self.labels = (self.data['diagnosis'].values == 'M').astype(int)
         self.batch_size = batch_size
-        self.slope, self.intercept,self.weights,self.biases,self.sums,self.accu,self.loss,self.loss_der=([],[],[],[],[],[],[],[])
-
+        self.neurons,self.slope, self.intercept,self.weights,self.biases,self.sums,self.sig_out, self.accu,self.loss,self.loss_grad, self.sig_grad=([],[],[], [],[],[],[],[],[],[],[])
+        self.accu = 0.0
         self.neuron_data = {
-            "Weights": self.weights,
-            "Bias": self.biases,
+            "Neurons": self.neurons,
+            "True_Labels": self.labels,
+            "weights": self.weights,
+            "bias": self.biases,
             "Slope": self.slope,
             "Intercept": self.intercept,
+            "Weighted_Sums": self.sums,
+            "Sig_Out": self.sig_out,
+            "Sig_Grad": self.sig_grad,
             "Loss": self.loss,
-            "Loss_Gradient": self.loss_der,
+            "Loss_Gradient": self.loss_grad,
         }
         self.epsilon = 1e-15
 
@@ -37,7 +43,9 @@ class NeuralNetwork:
         batches_finished=False
         hidden_finished = False
         # iterate over epochs
+        
         for epoch in range(epochs):
+            
             # randomize weights, biases, and labels beginning each epoch
             np.random.shuffle(self.weights)
             np.random.shuffle(self.biases)
@@ -60,62 +68,129 @@ class NeuralNetwork:
                         for neuron, bias, weights in activators.Iter_neuron():
                             if batches_finished == True:
                                 if not isinstance(self.weights, np.ndarray):
-                                    self.weights = np.array(self.weights)
-                                    self.biases = np.array(self.biases)
+                                    self.weights = np.array(self.weights).flatten()
+                                    self.biases = np.array(self.biases).flatten()
+                                    self.sums = np.array(self.sums).flatten()
+                                    self.sig_out = np.array(self.sig_out).flatten()
+                                    self.sig_grad =np.array(self.sig_grad).flatten()
+                                    self.intercept = np.array(self.intercept).flatten()
+                                    self.slope = np.array(self.slope).flatten()
+                                    self.labels = np.array(self.labels).flatten()
                                 
-                                self.weights = self.weights.flatten()
-                                self.biases = self.biases.flatten()
+                                
+                                
+                                
+                                
                                 
                                 self.sums = np.dot(self.sums, self.weights) + self.biases
                                 
-                                sig_out_batch, thresh = activators.Sigmoid(self.sums)
-                   
-                                #sig_out_batch = np.reshape(sig_out_batch,newshape=(31,569))
-                                for batches in sig_out_batch:
-                                    intercept,slope = LinearRegression(self.labels, batches)
-                                    bin_cross_entropy = binary_cross_entropy(self.labels, batches)
-                                    
-                                    self.loss_der = np.array([])
-                                    self.loss_der = CrossEntropy_Gradient(self.labels, batches)
-                                    
-                                    self.weights = np.reshape(np.array(self.weights), newshape=(31,569))
-                                    self.biases = np.reshape(np.array(self.biases), newshape=(31,569))
-                                    for batched_weights in self.weights:
-                                        batched_weights -= learning_rate * np.array(self.loss_der)
-                                        
-                                    for batched_biases in self.biases:
-                                        batched_biases -= learning_rate * np.array(self.loss_der)
                                 
-                                accu = np.mean(np.array(sig_out_batch) == np.array(self.labels))
-                                print(accu)
-                                         
-                            else:
-                                weighted_sum = np.dot(neuron, weights) + bias
-                                sig_out, thresh = activators.Sigmoid(weighted_sum)
-                                sig_out_batch.append(sig_out)
-                                self.sums.append(weighted_sum)
-                                self.weights.append(weights)
-                                self.biases.append(bias)
+                                self.sig_out, thresh = activators.Sigmoid(self.sums)
                                 
-                
+                                self.sig_grad = activators.Sigmoid_Gradient(self.sig_out)
+                                
+                                for label in self.labels:    
+                                    self.intercept, self.slope = LinearRegression(label, self.sig_out)
+                                    self.loss = binary_entropy_gradient(label, self.sig_out)
+                                    self.loss_grad = binary_entropy_gradient(label, self.sig_out)
+                                    if label == self.sig_out:
+                                        self.accu+=1
+                                
+                                self.accu = self.accu / len(self.labels)
+                                
+                                
+                                  
+                                    
+                                    
+                                
+                                
+                        else:
+                            if not isinstance(self.sums, list):
+                                self.sums = list(self.sums)
+                                self.sig_out = list([self.sig_out])
+                                self.sig_grad = list([self.sig_grad])
+                                #self.sig_grad = list(self.sig_grad)
+                                self.weights = list(self.weights)
+                                self.biases = list(self.biases)
+                                self.loss = list([self.loss]) 
+                                self.loss_grad = list([self.loss_grad])
+                                self.intercept = list([self.intercept])
+                                self.slope = list([self.slope])
+                                
+                            weighted_sums = np.dot(neuron, weights) + bias
+                            sig_out, thresh = activators.Sigmoid(weighted_sums)
+                            sigmoid_gradient = activators.Sigmoid_Gradient(sig_out)
+                            
+                            #intercept, slope = LinearRegression([i for i in range(len(self.labels))], self.labels)
+                            
+                            self.neurons.append(neuron)
+                            self.sums.append(weighted_sums)
+                            self.sig_out.append(sig_out)
+                            self.sig_grad.append(sigmoid_gradient)
+                            # self.intercept.append(intercept)
+                            # self.slope.append(slope)
+                            self.weights.append(weights)
+                            self.biases.append(bias)
+                            
+                            
+                            for label in self.labels:
+                                
+                                loss = binary_cross_entropy(label, sig_out)
+                                loss_gradient = binary_entropy_gradient(label, sig_out)
+                                intercept, slope = LinearRegression(label, sig_out)
+                                
+                                self.loss.append(loss)
+                                self.loss_grad.append(loss_gradient)
+                                self.intercept.append(intercept)
+                                
+                                self.slope.append(slope)
+
                 batches_finished = True
+                print(f"Batches finished: {batches_finished}")
+                print(self.accu)
+                self.loss.clear()
+                self.loss_grad.clear()
+                self.sig_grad.clear()
+                self.slope.clear()
+                self.neurons.clear()
+                self.intercept.clear()
+                self.slope.clear()
                 
                 
+                
+                # fig = go.Figure(data=[go.Scatter3d(
+                #     x=self.loss_grad,
+                #     y=self.loss,
+                #     z=[i for i in range(len(self.loss))],
+                #     mode="lines",
+                #     line=dict(
+                #         color="red",
+                #         width=2,
+                #     ),
+                #     name="lines",
+                # )])
+                # fig.update_layout(scene=dict(
+                #     xaxis_title='Intercept',
+                #     yaxis_title="Slope",
+                #     zaxis_title="Loss Gradient",
+                # ))
+                # fig.write_html(f'plot_slope_intercept_gradient.html')
+                #return self.neuron_data
             
             
             #print(bin_cross_entropy)
-                
+            #print(accu)
             # Drop columns except 'diagnosis'
             psuedo = self.data.drop(columns=self.data.columns.difference(['diagnosis']))
             
             # Convert sums list to DataFrame
-            self.sums = pd.DataFrame(np.reshape(self.sums, (-1, len(self.features.keys()))))
+            self.sig_out = pd.DataFrame(np.reshape(self.sig_out, (-1, len(self.features.keys()))))
 
             # Concatenate psuedo and sums DataFrames, drop 'diagnosis' column
-            self.sums = pd.concat([psuedo, self.sums], axis=1).drop('diagnosis', axis=1)
+            self.sig_out = pd.concat([psuedo, self.sums], axis=1).drop('diagnosis', axis=1)
 
             # Assign sums DataFrame to features.items
-            self.features.items = self.sums.items 
+            self.features.items = self.sig_out.items
             
             
             
@@ -142,11 +217,11 @@ class NeuralNetwork:
                 zaxis_title="Length_Of_Sigmoid"
             ))
                         
-            fig.write_html(f'plot_LinearRegression_{epoch}.html')                        
+            fig.write_html(f'plot_LinearRegression_e{epoch}.html')                        
 
             
 if __name__ == "__main__":
     neural_network = NeuralNetwork("breast-cancer.csv", 569)
-    output = neural_network.train(hidden_layers=5,epochs=5)                            
+    output = neural_network.train(hidden_layers=2,epochs=1)                            
                         
         
