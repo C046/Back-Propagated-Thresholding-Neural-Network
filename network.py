@@ -178,10 +178,10 @@ class NeuralNetwork:
                 self.loss.clear()
                 self.loss_grad.clear()
                 self.sig_grad.clear()
-                self.slope.clear()
+        
                 self.neurons.clear()
-                self.intercept.clear()
-                self.slope.clear()
+                
+               
 
             hidden_finished = True
             
@@ -211,6 +211,6 @@ class NeuralNetwork:
             
 if __name__ == "__main__":
     neural_network = NeuralNetwork("breast-cancer.csv")
-    output = neural_network.train(hidden_layers=3,epochs=2)                            
+    output = neural_network.train(hidden_layers=1,epochs=10)                            
                         
         
