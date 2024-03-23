@@ -15,13 +15,14 @@ from itertools import cycle
 import plotly.graph_objects as go
 
 class NeuralNetwork:
-    def __init__(self, data_path, batch_size):
+    def __init__(self, data_path, batch_size=None):
         
         # Load dataset and initialize attributes
         self.data = pd.read_csv(data_path)
         self.features = self.data.drop('diagnosis', axis=1)
         self.labels = (self.data['diagnosis'].values == 'M').astype(int)
-        self.batch_size = batch_size
+        self.batch_size = np.array(self.features).flatten()
+        
         self.neurons,self.slope, self.intercept,self.weights,self.biases,self.sums,self.sig_out, self.accu,self.loss,self.loss_grad, self.sig_grad=([],[],[], [],[],[],[],[],[],[],[])
         self.accu = 0.0
         self.neuron_data = {
@@ -53,10 +54,17 @@ class NeuralNetwork:
             
             # iterate over hidden layers
             for hidden_layer in range(hidden_layers):
+                
                 # iterate over neurons
                 for _, neurons in self.features.items():
+                    batch_size = int(self.batch_size.shape[0]/self.features.shape[1])
+                    if batches_finished:
+                        batch_size = self.features.shape[0]
+                    
+                    
+                    #self.batch_size = int(self.batch_size.shape[0]/self.features.shape[1])
                     # Configure the batch size for the input layer
-                    input_layer = InputLayer(neurons, batch_size=self.batch_size)
+                    input_layer = InputLayer(neurons, batch_size=batch_size)
                     # iterate over batches
                     for batched_inputs in input_layer.batch_inputs():
                         # assign activation functions to inputs
@@ -72,6 +80,7 @@ class NeuralNetwork:
                                     self.biases = np.array(self.biases).flatten()
                                     self.sums = np.array(self.sums).flatten()
                                     self.sig_out = np.array(self.sig_out).flatten()
+                                    
                                     self.sig_grad =np.array(self.sig_grad).flatten()
                                     self.intercept = np.array(self.intercept).flatten()
                                     self.slope = np.array(self.slope).flatten()
@@ -82,18 +91,19 @@ class NeuralNetwork:
                                 
                                 
                                 
-                                self.sums = np.dot(self.sums, self.weights) + self.biases
+                                self.sums = np.dot(neuron, self.weights) + self.biases
                                 
                                 
                                 self.sig_out, thresh = activators.Sigmoid(self.sums)
                                 
                                 self.sig_grad = activators.Sigmoid_Gradient(self.sig_out)
                                 
-                                for label in self.labels:    
-                                    self.intercept, self.slope = LinearRegression(label, self.sig_out)
+                                for label,sig in zip(self.labels, cycle(self.sig_out)): 
+                                
+                                    self.intercept, self.slope = LinearRegression(label, sig)
                                     self.loss = binary_entropy_gradient(label, self.sig_out)
                                     self.loss_grad = binary_entropy_gradient(label, self.sig_out)
-                                    if label == self.sig_out:
+                                    if label == sig:
                                         self.accu+=1
                                 
                                 self.accu = self.accu / len(self.labels)
@@ -107,13 +117,23 @@ class NeuralNetwork:
                         else:
                             if not isinstance(self.sums, list):
                                 self.sums = list(self.sums)
-                                self.sig_out = list([self.sig_out])
-                                self.sig_grad = list([self.sig_grad])
+                                if isinstance(self.sig_out, int):
+                                    self.sig_out = [self.sig_out]
+                                    self.sig_grad = [self.sig_grad]
+                                    self.loss = [self.loss]
+                                    self.loss_grad = [self.loss_grad]
+                                    self.intercept = [self.intercept]
+                                    self.slope = [self.slope]
+                                else:
+                                    pass
+                                
+                                self.sig_out = list(self.sig_out)
+                                self.sig_grad = list(self.sig_grad)
                                 #self.sig_grad = list(self.sig_grad)
                                 self.weights = list(self.weights)
                                 self.biases = list(self.biases)
-                                self.loss = list([self.loss]) 
-                                self.loss_grad = list([self.loss_grad])
+                                self.loss = list(self.loss) 
+                                self.loss_grad = list(self.loss_grad)
                                 self.intercept = list([self.intercept])
                                 self.slope = list([self.slope])
                                 
@@ -144,7 +164,14 @@ class NeuralNetwork:
                                 self.intercept.append(intercept)
                                 
                                 self.slope.append(slope)
-
+                                if label == sig_out:
+                                    self.accu+=1
+                            
+                            self.accu = self.accu/len(self.labels)
+                            
+                
+                self.features = pd.DataFrame(self.sig_out).T
+                            
                 batches_finished = True
                 print(f"Batches finished: {batches_finished}")
                 print(self.accu)
@@ -155,45 +182,7 @@ class NeuralNetwork:
                 self.neurons.clear()
                 self.intercept.clear()
                 self.slope.clear()
-                
-                
-                
-                # fig = go.Figure(data=[go.Scatter3d(
-                #     x=self.loss_grad,
-                #     y=self.loss,
-                #     z=[i for i in range(len(self.loss))],
-                #     mode="lines",
-                #     line=dict(
-                #         color="red",
-                #         width=2,
-                #     ),
-                #     name="lines",
-                # )])
-                # fig.update_layout(scene=dict(
-                #     xaxis_title='Intercept',
-                #     yaxis_title="Slope",
-                #     zaxis_title="Loss Gradient",
-                # ))
-                # fig.write_html(f'plot_slope_intercept_gradient.html')
-                #return self.neuron_data
-            
-            
-            #print(bin_cross_entropy)
-            #print(accu)
-            # Drop columns except 'diagnosis'
-            psuedo = self.data.drop(columns=self.data.columns.difference(['diagnosis']))
-            
-            # Convert sums list to DataFrame
-            self.sig_out = pd.DataFrame(np.reshape(self.sig_out, (-1, len(self.features.keys()))))
 
-            # Concatenate psuedo and sums DataFrames, drop 'diagnosis' column
-            self.sig_out = pd.concat([psuedo, self.sums], axis=1).drop('diagnosis', axis=1)
-
-            # Assign sums DataFrame to features.items
-            self.features.items = self.sig_out.items
-            
-            
-            
             hidden_finished = True
             
        
@@ -221,7 +210,7 @@ class NeuralNetwork:
 
             
 if __name__ == "__main__":
-    neural_network = NeuralNetwork("breast-cancer.csv", 569)
-    output = neural_network.train(hidden_layers=2,epochs=1)                            
+    neural_network = NeuralNetwork("breast-cancer.csv")
+    output = neural_network.train(hidden_layers=3,epochs=2)                            
                         
         
