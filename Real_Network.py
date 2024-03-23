@@ -36,15 +36,7 @@ def calculate_accuracy(array1, array2):
 
     return accuracy
 
-# Example arrays
-array1 = np.array([1, 2, 3, 4, 5])
-array2 = np.array([1, 0, 3, 4, 5])
 
-# Calculate accuracy
-accuracy = calculate_accuracy(array1, array2)
-
-# Print the accuracy
-print("Accuracy:", accuracy)
 
 
 class Network:
