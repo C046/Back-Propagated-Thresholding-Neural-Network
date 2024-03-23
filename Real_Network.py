@@ -68,19 +68,20 @@ class Network:
                 else:
                     forward_pass_data = batch.forward_pass(inputs=forward_pass_data["output"], bias=forward_pass_data["bias"], weights=forward_pass_data["weights"])
                     
-                    forward_pass_data["weights"] = np.array(forward_pass_data["weights"])
-                    forward_pass_data["avg_chain_grad"] = np.array([forward_pass_data["avg_chain_grad"]])
-                    forward_pass_data["bias"] = np.array(forward_pass_data["bias"])
+            forward_pass_data["weights"] = np.array(forward_pass_data["weights"])
+            forward_pass_data["avg_chain_grad"] = np.array([forward_pass_data["avg_chain_grad"]])
+            forward_pass_data["bias"] = np.array(forward_pass_data["bias"])
                     
                     
                     
-                    forward_pass_data["weights"] -= learning_rate * forward_pass_data["avg_chain_grad"]
-                    forward_pass_data["bias"] -= learning_rate * forward_pass_data["avg_chain_grad"]
+            forward_pass_data["weights"] -= learning_rate * forward_pass_data["avg_chain_grad"]
+            forward_pass_data["bias"] -= learning_rate * forward_pass_data["avg_chain_grad"]
                     
-                    forward_pass_data["weights"] = list(forward_pass_data["weights"])
-                    forward_pass_data["chain_grad"] = list(forward_pass_data["avg_chain_grad"])
-                    forward_pass_data["bias"] = list(forward_pass_data["bias"])
-                    np.random.shuffle(self.labels)
+            forward_pass_data["weights"] = list(forward_pass_data["weights"])
+            forward_pass_data["avg_chain_grad"] = list(forward_pass_data["avg_chain_grad"])
+            forward_pass_data["bias"] = list(forward_pass_data["bias"])
+            #np.random.shuffle(self.labels)
+                    
                     
                     
                     
@@ -89,7 +90,7 @@ class Network:
                     # np.random.shuffle(forward_pass_data["bias"])
                 
                 
-                lab = forward_pass_data["output"]
+            lab = forward_pass_data["output"]
                 
             batch.clear_gradients()
             accuracy = calculate_accuracy(self.labels, lab)
