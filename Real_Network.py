@@ -54,7 +54,8 @@ class Network:
         
         for epoch in range(epochs):
             for hidden_layer in range(hidden_layers):      
-                if hidden_layer == 0:    
+                if hidden_layer == 0:   
+                    print(self.max_batch_size)
                     batch = InputLayer(lab, max_batch_size=self.max_batch_size)
                     forward_pass_data = batch.forward_pass()
                 else:
@@ -69,7 +70,7 @@ class Network:
         
         accuracy = calculate_accuracy(self.labels, lab)
         print(f"Accuracy: {accuracy}")
-        return lab
+        return lab, self.labels
     
 network = Network("breast-cancer.csv")
-batch = network.train(hidden_layers=10, epochs=1) 
+batch = network.train(hidden_layers=10, epochs=2) 
