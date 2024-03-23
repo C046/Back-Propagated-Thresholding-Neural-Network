@@ -30,7 +30,16 @@ class Activations:
         # Generate random weights using a normal distribution
         return np.random.normal(size=(size,))
 
-    def Iter_neuron(self):
+    def iter_neuron(self, inputs=False, bias=False, weights=False):
+        if inputs != False:
+            self.input_array = inputs
+        
+        if bias != False:
+            self.biases = bias
+        
+        if weights != False:
+            self.weights = weights
+            
         try:    
             for element, bias, weights in zip(self.input_array, self.biases, self.weights):
                 yield (element, bias, weights)
