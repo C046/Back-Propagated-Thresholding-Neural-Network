@@ -23,7 +23,7 @@ data_path = "breast-cancer.csv"
 data =  pd.read_csv(data_path)
 
 # set the inputs
-inputs = data.drop('diagnosis', axis=1)
+inputs = np.array(data.drop('diagnosis', axis=1))
 # set the labels
 actual_labels = (data['diagnosis'].values == 'M').astype(int)
 
@@ -325,6 +325,8 @@ class Network:
         self.plt.grid(True)
         self.plt.legend()
         self.size = inputs.size
+        self.learning_rate = learning_rate
+        self.inputs = inputs
 
         
         # set attributes
@@ -343,7 +345,8 @@ class Network:
         
         
         
-        self.learning_rate = learning_rate
+
+        
     def Grwb(self, size):
             """
             <Generate Random Weights or biases> for the given input size.
@@ -357,44 +360,56 @@ class Network:
             # Generate random weights using a normal distribution
             return np.random.normal(size=(size,))
     def sigmoid(self, x):
-        threshold = np.random.uniform(np.random.uniform(0.45,0.49), np.random.uniform(0.49,np.random.uniform(0.55,0.59)))
-        x = x + .01e+1
+        x = np.where((x == 0), .0001e+1, x)
+  
         try:
             return (1 / np.exp(x)**-x)
+        
         except Exception as e:
             print("Error in sigmoid function:", e)
             return 0.0
         
-    def linear_regression(self, bce):
-        bce = bce.astype(complex)
-        magnitude = []
-        angle = []
+    def mag_and_ang(self, weighted_sum):
+        # Extract real and imaginary parts
+        a = np.real(weighted_sum)
+        b = np.imag(weighted_sum)
+    
+        # Compute magnitude
+        magnitude = np.sqrt(a**2 + b**2)
+    
+        # Compute angle
+        angle = np.arctan2(b, a)
+    
+        return magnitude, angle    
+    def linear_regression(self, weighted_sum):
+        # Perform linear regression on the weighted sum
+        weighted_sum = np.reshape(weighted_sum, newshape=self.weights.shape)
+        slope, intercept, _, _, _ = linregress(x=weighted_sum, y=self.actual_labels)
+        return slope, intercept
 
-        for value in bce:
-            mag,ang = mp.polar(complex(value))
-            mag,ang = float(mag), float(ang)
-            
-            x = mag*np.cos(ang)
-            y = mag*np.sin(ang)
-            
-            magnitude.append(x)
-            angle.append(y)
 
-        slope, intercept, _, _, _ = linregress(magnitude, angle)
-        return slope, intercept 
-
-    def forward_pass(self, inputs, weights, bias):  
+    def forward_pass(self, inputs, weights, bias):
+        # Set iterator instance
+        i = Iterate()
         def __normalize__(data):
-            min_val = min(data)
-            max_val = max(data)
-            return [(x-min_val)/(max_val-min_val) for x in data]
+            min_val = np.min(data)
+            max_val = np.max(data)
+            
+            if not isinstance(data, np.ndarray):
+                data = np.array(data)
+            else:
+                pass
+            
+                
+            return ((data-min_val)/(max_val-min_val)).tolist()
         
+                
         def __log__(x):
             return np.log(x)
         
         def __plot__(slopes, intercepts, lines=False):
             if lines:
-                return self.plt.Line2D(slopes,intercept, color="green",linewidth=2, label="regression")
+                return self.plt.Line2D(slopes,intercepts, color="green",linewidth=2, label="regression")
             else:
                 return self.plt.scatter(slopes, intercepts, color='blue', label='regression')
 
@@ -402,7 +417,7 @@ class Network:
             
         def __weighted__(inputs, weights, bias):
             # Convert inputs, weights, and bias to numpy arrays if they are not already
-            if not isinstance(inputs, np.ndarray):
+            if isinstance(inputs, pd.DataFrame):
                 inputs = np.array(inputs)
             if not isinstance(weights, np.ndarray):
                 weights = np.array(weights)
@@ -414,7 +429,9 @@ class Network:
             if len(weights.shape) == 1:
                 weights = weights.reshape(-1, 1)  # Reshape to column vector
 
-            return np.dot(inputs, weights.T) + bias
+            
+            
+            return np.dot(inputs, weights.T) + bias.T
             
 
                 
@@ -423,10 +440,15 @@ class Network:
                 y_pred = np.array(y_pred)
             if not isinstance(y_actual, np.ndarray):
                 y_actual = np.array(y_actual)
-        
+            counter = 0
             L = (y_pred - y_actual).mean()
             if self.L >= L:
-                print(f"Decrease in loss value: {L}")    
+                counter+=1
+                if counter == y_pred.size/2:    
+                    print(f"Decrease in loss value: {L}")
+                    counter=0
+                else:
+                    pass
             else:
                 print(f"Increase in loss value: {L}")
             
@@ -459,92 +481,79 @@ class Network:
             for pred_prob_log in i.cycle(pred_prob, action=__log__):
                 log_cache.append(pred_prob_log)
             
-            return result*log_cache       
+            log_cache = __normalize__(log_cache)
+            result = result*log_cache
+            log_cache.clear()
+            
+            return result      
         
+        def __binary_cross_entropy_differentiated__(prediction):
+            return (self.actual_labels/prediction)-((1+self.actual_labels)/(1+prediction))
+
         # Calculate weight gradients
         weights_grad = np.gradient(weights)
         # Calculate bias gradients
         bias_grad = np.gradient(bias)
-        
-        # Set iterator instance
-        i = Iterate()
-        
-        
+
         # Calculate the weighted sum
-        try:
-            
-            weighted_sum = __weighted__(inputs,self.weights,self.bias)
-        except ValueError:
-            print(f"Shapes: inputs{inputs.shape}, weights={weights.shape}, bias={bias.shape}")
-                
-        return inputs.shape,weights.shape,bias.shape
-                
+        weighted_sum = __weighted__(inputs,weights,bias)
         # Normalize the weighted sum
-        weighted_sum = __normalize__(weighted_sum)
-        # Set sigmoid output cache
-        sig = []
+        normalized_sum = np.array(__normalize__(weighted_sum))
         
         # Calculate the sigmoid on the weighted sums that are normalized
-        for sig_out in i.cycle(weighted_sum, action=self.sigmoid):
-            sig.append(sig_out)
+        self.sig = self.sigmoid(normalized_sum)
+        # Normalize the sigmoids output
+        self.sig = __normalize__(self.sig)
+        # Initialize a random threshold to abide by, like a law for the brain, but laws change right?
+        threshold = np.random.uniform(np.random.uniform(0.45,0.49), np.random.uniform(0.49,np.random.uniform(0.55,0.59)))
+        # Calculate the gradients on the sigmoid output
+        self.sig_grad = np.gradient(self.sig)
+        # Propagate the sigmoids output
+        self.sig = self.sig-(self.learning_rate*np.array(self.sig_grad))
+        # Create a predicted output between a 1 or 0+epsilon
+        self.predicted_output = np.where((np.array(self.sig) >= threshold), 1,0+.001e-1)
+        # Calculate cross entropy on the normalized sigmoid output
+        self.bce = __binary_cross_entropy__(self.predicted_output)
+        self.bce = np.array(__normalize__(self.bce))
+        
+        self.bce_grad = np.gradient(self.bce)
+        # Propagate the bce with the gradient
+        self.bce = self.bce-(self.learning_rate*np.array(self.bce_grad))
+        
+        self.loss = __loss__(self.sig, self.actual_labels)
+        self.loss_grad = np.gradient(self.loss)
+        self.loss = self.loss-(self.learning_rate*np.array(self.loss_grad))
         
         
-        # Calculate the gradients on the sigmoids output
-        sig_grad = np.gradient(sig)
-        # Normalize the sigmoid output and turn it into an array
-        sig = np.array(__normalize__(sig))
         
-        # Set epsilon to values where values are == 0
-        sig = np.where(sig==0.0, .0001e+1, sig)
-        
-        # Calculate cross entropy on the normalized sigmoids output
-        bce = __binary_cross_entropy__(sig)
-        
-        # Calculate gradient on cross entropy
-        bce_grad = np.gradient(bce)
-        
-        # Calculate the loss
-        loss = __loss__(sig, self.actual_labels)
-        
-        # perform linear regression
-        slope,intercept = self.linear_regression(bce)
-        
-        # plot the regression
-        __plot__(slope, intercept)
-        
-        
-        # calculate weight_chain
-        weight_chain = weights_grad*bce_grad*sig_grad
-        # calculate bias_chain
-        bias_chain = bias_grad*bce_grad*sig_grad
-        
-        
-
-       # list(loss_grad).clear()
-        
-        
-        weights = np.array(weights)
-        bias = np.array(bias)
-        
-        weights = weights - (self.learning_rate*weight_chain)
-        bias = bias- (self.learning_rate*bias_chain)
-        
-        list(weights_grad).clear()
-        list(bias_grad).clear()
-        list(bce_grad).clear()
-        list(sig_grad).clear()
-        
-        return sig, weights, bias
-
+        return self.predicted_output, self.weights, self.bias, self.bce, self.loss
 
 # Example usage
 weights = None
 bias = None
+accu=[]
 
-n = Network(actual_labels, inputs, weights=weights,bias=bias)
-for i in range(1000):
-    inputs,weights,bias = n.forward_pass(inputs,weights=weights,bias=bias)
-    print(f"accuracy: {calculate_accuracy(inputs, actual_labels)}")   
+# Example usage
+n = Network(actual_labels, inputs)
+
+for epoch in range(100):
+    accu = []
+    outputs = []  # Store outputs for each epoch
+    for values in inputs:
+        output, weights, bias, bce,loss = n.forward_pass(values, weights=n.weights, bias=n.bias)
+        # Assuming the output of the network is a probability between 0 and 1
+        
+        accuracy = calculate_accuracy(actual_labels, output)
+        accu.append(accuracy)
+        outputs.append(output)
+        
+    outputs = np.array(outputs)  # Convert outputs to numpy array
+    inputs = outputs
+    # Calculate mean accuracy for the epoch
+    mean_accuracy = np.mean(accu)
+    print(f"Epoch {epoch + 1}: Accuracy = {mean_accuracy}")
+    accu = []
+    #print(f"accuracy: {calculate_accuracy(inputs, actual_labels)}")   
     
   
 
