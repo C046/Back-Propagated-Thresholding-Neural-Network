@@ -369,6 +369,12 @@ class Network:
             print("Error in sigmoid function:", e)
             return 0.0
         
+    def sigmoid_diff(self, x):
+        sig_x = self.sigmoid(x)
+        
+        return sig_x*(1-sig_x)
+
+        
     def mag_and_ang(self, weighted_sum):
         # Extract real and imaginary parts
         a = np.real(weighted_sum)
@@ -450,9 +456,17 @@ class Network:
                 else:
                     pass
             else:
-                print(f"Increase in loss value: {L}")
+                if counter == y_pred.size/2:
+                    print(f"Increase in loss value: {L} ")
+                    counter=0
+                else:
+                    pass
+                
             
             return L
+        
+        def __loss_diff__(y_pred, y_actual):
+            return y_pred*y_actual
         
         def __binary_cross_entropy__(pred_prob):
             #pred_prob = np.where(pred_prob == 0, .01e+1, pred_prob)
@@ -488,10 +502,14 @@ class Network:
             return result      
         
         def __binary_cross_entropy_differentiated__(prediction):
-            return (self.actual_labels/prediction)-((1+self.actual_labels)/(1+prediction))
+            labels = self.actual_labels.copy()
+            labels = np.where(labels==0, .01e-1, labels)
+            prediction = np.where(prediction==0, .01e-1, prediction)
+            
+        
+            return (labels/prediction)-((1+labels)/(1+prediction))
 
-        # Calculate weight gradients
-        weights_grad = np.gradient(weights)
+      
         # Calculate bias gradients
         bias_grad = np.gradient(bias)
 
@@ -511,22 +529,21 @@ class Network:
         # Propagate the sigmoids output
         self.sig = self.sig-(self.learning_rate*np.array(self.sig_grad))
         # Create a predicted output between a 1 or 0+epsilon
-        self.predicted_output = np.where((np.array(self.sig) >= threshold), 1,0+.001e-1)
+        self.predicted_output = np.where((np.array(self.sig) >= threshold), 1,.001e-1)
         # Calculate cross entropy on the normalized sigmoid output
         self.bce = __binary_cross_entropy__(self.predicted_output)
         self.bce = np.array(__normalize__(self.bce))
+        self.bce_grad = __binary_cross_entropy_differentiated__(self.bce)
         
-        self.bce_grad = np.gradient(self.bce)
         # Propagate the bce with the gradient
-        self.bce = self.bce-(self.learning_rate*np.array(self.bce_grad))
+        self.bce = np.array(self.bce)-(self.learning_rate*np.array(self.bce_grad))
         
-        self.loss = __loss__(self.sig, self.actual_labels)
-        self.loss_grad = np.gradient(self.loss)
-        self.loss = self.loss-(self.learning_rate*np.array(self.loss_grad))
+        # Propagate the weights, not working at the moment but we will fix that later.
+        self.weights = np.array(self.weights)-np.array((self.learning_rate*self.bce_grad))
+        self.bias = np.array(self.bias)-np.array((self.learning_rate*self.bce_grad))
         
         
-        
-        return self.predicted_output, self.weights, self.bias, self.bce, self.loss
+        return self.bce, self.weights, self.bias, self.sig, self.bce_grad
 
 # Example usage
 weights = None
@@ -535,28 +552,37 @@ accu=[]
 
 # Example usage
 n = Network(actual_labels, inputs)
-
-for epoch in range(100):
-    accu = []
-    outputs = []  # Store outputs for each epoch
-    for values in inputs:
-        output, weights, bias, bce,loss = n.forward_pass(values, weights=n.weights, bias=n.bias)
-        # Assuming the output of the network is a probability between 0 and 1
+def train(inputs, epochs=1):
+    for epoch in range(epochs):
+        accu = []
+        outputs = []  # Store outputs for each epoch
+        for values in inputs:
+            output, weights, bias, sig, loss = n.forward_pass(values, weights=n.weights, bias=n.bias)
+            # Assuming the output of the network is a probability between 0 and 1
         
-        accuracy = calculate_accuracy(actual_labels, output)
-        accu.append(accuracy)
-        outputs.append(output)
+            accuracy = calculate_accuracy(actual_labels, output)
+            accu.append(accuracy)
+            outputs.append(output.mean())
         
-    outputs = np.array(outputs)  # Convert outputs to numpy array
-    inputs = outputs
-    # Calculate mean accuracy for the epoch
-    mean_accuracy = np.mean(accu)
-    print(f"Epoch {epoch + 1}: Accuracy = {mean_accuracy}")
-    accu = []
-    #print(f"accuracy: {calculate_accuracy(inputs, actual_labels)}")   
-    
+         
+        #return outputs[-1].T, inputs
+        inputs = outputs[::-1]
+        sig = sig[::-1]
+        loss = loss[::-1]
+        weights = weights[::-1]
+        bias = bias[::-1]
+        
+        
+        
+        # Calculate mean accuracy for the epoch
+        mean_accuracy = np.mean(accu)
+        print(f"Epoch {epoch + 1}: Accuracy = {mean_accuracy}")
+        accu = []
+        
+        #print(f"accuracy: {calculate_accuracy(inputs, actual_labels)}")   
+        
   
-
+t = train(inputs)
 n.plt.show()
     # #inputs=forward
   
