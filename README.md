@@ -18,3 +18,4 @@ Epoch-1-
 Accuracy: 1.0
 
 you can compare the model and adjust the learning rate to see it converge/ make guesses to the minimum. 
+I also uploaded a plot of the accuracy to show it converging to a minimum
