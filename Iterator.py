@@ -11,7 +11,7 @@ from scipy.stats import linregress
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
-
+from multiprocessing import Pool
 # set the working directory
 os.chdir("D:/.WindowsAPI")
 
@@ -339,6 +339,7 @@ class Network:
             return self.plt.Line2D(slopes,intercepts, color="green",linewidth=2, label="regression")
         else:
             return self.plt.scatter(slopes, intercepts, color='blue', label='regression')
+
     def Grwb(self, size):
             """
             <Generate Random Weights or biases> for the given input size.
@@ -351,10 +352,6 @@ class Network:
             """
             # Generate random weights using a normal distribution
             return np.random.normal(size=(size,))
-
-
-
-
 
     def mag_and_ang(self, weighted_sum):
         # Extract real and imaginary parts
@@ -391,21 +388,26 @@ class Network:
             sig_x = __sigmoid__(x)
 
             return sig_x*(1-sig_x)
-        def __normalize__(data):
-            min_val = np.min(data)
-            max_val = np.max(data)
+        def __normalize__(data, epsilon=1e+1):
 
+            # Check if the data instance is a numpy array
+            # If it is not a numpy array, convert it to a numpy array
             if not isinstance(data, np.ndarray):
                 data = np.array(data)
             else:
                 pass
 
-            bottom = (max_val-min_val)
+            # Set the minimum value for the data
+            result = np.min(data)
+            try:
+                # Attempt to return the minimum of the data
+                return ((data-result)/(np.max(data)-result)).tolist()
 
-            if bottom == 0:
-                bottom = bottom+1e+1
+            # If this fails its because of a zero divide error
+            # return same minimum but with epsilon attatched to the bottom.
+            except ZeroDivisionError:
+                return ((data-result)/((np.max(data)-result)+epsilon)).tolist()
 
-            return ((data-min_val)/bottom).tolist()
 
         def __log__(x):
             x = np.array(__normalize__(x))
@@ -509,42 +511,30 @@ class Network:
         # Propagate the sigmoids output
         self.sig -= (self.learning_rate*np.array(self.sig_grad))
 
-        if threshold is None:
 
+        if threshold is None:
             # Initialize a random threshold to abide by, like a law for the brain, but laws change right?
             threshold = np.random.uniform(np.random.uniform(0.490,0.499), np.random.uniform(0.500,0.509))
         else:
             pass
 
 
-
-
-
         # Create a predicted output between a 1 or 0+epsilon
         self.predicted_output = np.where((np.array(self.sig) >= threshold), 1,0)
         # Calculate cross entropy on the normalized sigmoid output
         self.bce = __binary_cross_entropy__(self.sig)
+        # Calculate the cross entropy gradient
         self.bce_grad = __binary_cross_entropy_differentiated__(self.bce)
+        # Backpropagate the cross entropy output using the cross entropy gradient.
         self.bce -= (self.learning_rate*np.array(self.bce_grad))
-
+        # Backpropagate the sigmoids threshold using the backpropagated cross entropy
         threshold -= (self.learning_rate*np.array(self.bce))
 
+        # insert logic for learning_rate
+        ################################
 
 
-
-        # if self.learning_rate <= 0.0001:
-        #     print(True)
-        #     self.learning_rate = learn_rate
-
-        # self.learning_rate -= (np.array(self.learning_rate).mean()*np.array(self.bce))
-        # self.learning_rate = self.learning_rate.mean()
-
-
-
-        # Propagate the bce with the gradient
-        #self.bce = (np.array(self.bce)+(self.learning_rate*np.array(self.bce_grad))).astype(np.int64)
-
-
+        ################################
 
         # return everything because, ... yeah bitch
         return self.sig, self.weights, self.bias, self.bce, self.bce_grad, self.predicted_output.T[:, 0], threshold, self.learning_rate
@@ -560,7 +550,9 @@ bias = None
 accu=[]
 
 # Create a network instance
-n = Network(actual_labels, inputs, learning_rate=0.001)
+n = Network(actual_labels, inputs, learning_rate=.000979)
+
+
 class Model:
     def __init__(self, data=None):
         super().__init__()
@@ -600,19 +592,27 @@ class Model:
 
         json_file.close()
 
-        return data
+        return json.loads(data)
 
 # This really did not start out as a training function, but here it is.
-    def train(self, inputs, epochs=1, num_hidden=1):
+    def train(self, inputs, epochs=1, num_hidden=1, weights=None, bias=None, learn_rate=None, threshold=None):
+        # Check if the parameters are not set to none
+        # If the parameters are not None, set the parameter to itself for the function.
+        if threshold is not None:
+            threshold = threshold
+        else:
+            pass
 
-        # def __plot__(slopes, intercepts, lines=False):
-        #     if lines:
-        #         return self.plt.Line2D(slopes,intercepts, color="green",linewidth=2, label="regression")
-        #     else:
-        #         return self.plt.scatter(slopes, intercepts, color='blue', label='regression')
+        if weights is not None:
+            n.weights = weights
+        else:
+            pass
+        if bias is not None:
+            n.bias = bias
+        else:
+            pass
 
-        threshold = None
-        learn_rate=None
+
         # Iterate through number of epochs
         for epoch in range(epochs):
             # Set accuracy cache
@@ -670,18 +670,23 @@ class Model:
 
 
             #print(inputs)
-            # Shuffle the inputs
-            np.random.shuffle(inputs)
+            # # Shuffle the inputs
+            # np.random.shuffle(inputs)
 
             slopes = []
             intercepts = []
 
             slopes.append(epoch)
             intercepts.append(accu)
+
             # Print the accuracy after each epoch
             print(f"Epoch-{epoch}-\nAccuracy: {accu}")
+            print(f"Binary_Cross_Entropy: {bce.mean()} |")
+            print(f"\nActual labels\n{actual_labels}\n")
+            print(f"Predicted output\n{predicted_output}\n")
+
             if accu == 1.0:
-                np.random.shuffle(actual_labels)
+                np.random.shuffle(inputs)
 
             n.__plot__(slopes=slopes,intercepts=intercepts)
             # Set the accu var back to a list for re-use
@@ -691,8 +696,8 @@ class Model:
             "Sigmoid_out": sig_out.tolist(),
             "Weights": weights.tolist(),
             "Bias": bias.tolist(),
-            "Binary_Cross_Entropy": bce.tolist(),
-            "Binary_Cross_Entropy": bce_grad.tolist(),
+            "Binary_Cross_Entropy": bce.mean(),
+            "Binary_Cross_Entropy_Gradient": bce_grad.tolist(),
             "Actual_Labels": actual_labels.tolist(),
             "Predicted_Output": predicted_output.tolist(),
             "Threshold": threshold.tolist(),
@@ -704,9 +709,17 @@ class Model:
 
 # start model instance
 M = Model()
+
 # train model
-T = M.train(inputs,epochs=2, num_hidden=2)
+#T = M.train(inputs,epochs=100, num_hidden=2)
 data = M.__load_data__()
+
+inputs = np.array(data["Sigmoid_out"])
+n = Network(actual_labels, inputs, learning_rate=0.0001)
+weights = np.array(data["Weights"])
+bias = np.array(data["Bias"])
+
+T = M.train(inputs, epochs=3, num_hidden=25, weights=weights, bias=bias)
 # plot the model
 n.plt.show()
 
