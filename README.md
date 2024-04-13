@@ -1,3 +1,6 @@
+Coded 04/12/24 @ 12:00 PM
+
+
 A neural network from scratch, legitmately.
 
 Default.json is a pre trained model.
