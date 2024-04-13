@@ -1,4 +1,4 @@
-Coded 04/12/24 @ 12:00 PM
+Coded 04/12/24 @ 12:00 PM by colton hadaway
 
 
 A neural network from scratch, legitmately.
