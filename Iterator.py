@@ -678,7 +678,7 @@ class Model:
 
             slopes.append(epoch)
             intercepts.append(accu)
-            #learn_rate /= learn_rate*bce_grad.mean()
+            learn_rate /= learn_rate*bce_grad.mean()
 
             # Print the accuracy after each epoch
             print(f"Epoch-{epoch}-\nAccuracy: {accu}")
