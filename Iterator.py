@@ -678,6 +678,7 @@ class Model:
 
             slopes.append(epoch)
             intercepts.append(accu)
+            learn_rate /= learn_rate*bce_grad.mean()
 
             # Print the accuracy after each epoch
             print(f"Epoch-{epoch}-\nAccuracy: {accu}")
@@ -692,6 +693,7 @@ class Model:
             # Set the accu var back to a list for re-use
             accu = []
 
+        np.random.shuffle(sig_out)
         self.data = json.dumps({
             "Sigmoid_out": sig_out.tolist(),
             "Weights": weights.tolist(),
